@@ -6,7 +6,7 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 not started.
+**Status:** M0 built and green. Waiting on the seven-day storage check before M1.
 
 ---
 
@@ -18,26 +18,28 @@ front-loaded — M0 can invalidate the plan, so it goes first.
 This milestone exists to answer one question before any real work depends on the answer.
 
 ### Toolchain
-- [ ] Vite + React + TypeScript project
-- [ ] Vitest + fast-check
+- [x] Vite + React + TypeScript project
+- [x] Vitest + fast-check
 - [ ] Prettier, ESLint
-- [ ] Lint rule (or a plain test) forbidding DOM / IndexedDB imports inside `src/core/`
+- [x] Test forbidding ambient reads and outside imports in `src/core/` — `src/core/purity.test.ts`
 
 ### Shipping
-- [ ] `vite-plugin-pwa`, manifest, icons, `registerType: 'autoUpdate'`
-- [ ] Vite `base` set to `/group-money-counter/` for Pages
-- [ ] GitHub Actions workflow building and deploying to Pages
+- [x] `vite-plugin-pwa`, manifest, icons, `registerType: 'autoUpdate'`
+- [x] Vite `base` set to `/group-money-counter/` for Pages
+- [x] GitHub Actions workflow building and deploying to Pages
 - [ ] Decide navigation: hash routing or plain state-based screens — Pages has no server-side
-      rewrite, so history routing needs the `404.html` trick
-- [ ] Build assertion that fails CI if `dist/` contains any external URL or network call
+      rewrite, so history routing needs the `404.html` trick. Deferred to M2; the probe is a
+      single screen and doesn't need it
+- [x] Build assertion that fails CI if `dist/` contains any external URL or network call —
+      `scripts/check-offline.mjs`
 
 ### Foundations
-- [ ] `idb` wrapper with `events` and `meta` stores, index `by-group-hlc`
-- [ ] `deviceId` generated once and persisted
-- [ ] HLC: encode, decode, `now()`, `observe()` — plus tests
+- [x] `idb` wrapper with `events` and `meta` stores, index `by-group-hlc`
+- [x] `deviceId` generated once and persisted
+- [x] HLC: encode, decode, send, receive — plus property tests
 
 ### The gate
-- [ ] Debug screen writing a timestamp to IndexedDB and displaying how long ago it was written
+- [x] Debug screen writing a timestamp to IndexedDB and displaying how long ago it was written
 - [ ] Install to iPhone home screen, write data, leave untouched
 - [ ] **Check after 7+ days. Record the result in DIARY.md.**
 - [ ] Same check on Android for comparison

@@ -1,0 +1,207 @@
+/* Greenbar ledger paper: pale banded green, ink that leans green, one accent. */
+
+:root {
+  --ground: #fbfcf9;
+  --band: #eaf0e5;
+  --surface: #f3f7f0;
+  --ink: #17201a;
+  --ink-mid: #3b4a3f;
+  --ink-muted: #5f6c62;
+  --rule: #ccd7c5;
+  --rule-soft: #dfe7da;
+  --accent: #256b47;
+  --accent-ink: #1b5335;
+  --accent-soft: #ddebe1;
+  --danger: #9e3030;
+  --warn: #7e5310;
+
+  --f-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --f-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0e1310;
+    --band: #171e18;
+    --surface: #141b16;
+    --ink: #e3eae1;
+    --ink-mid: #b7c3b8;
+    --ink-muted: #94a196;
+    --rule: #2b352c;
+    --rule-soft: #212a22;
+    --accent: #6fc291;
+    --accent-ink: #8ad3a8;
+    --accent-soft: #16261c;
+    --danger: #e0837a;
+    --warn: #d6a552;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--ground);
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+button {
+  font: inherit;
+  color: var(--ground);
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: var(--rule);
+  color: var(--ink-muted);
+  cursor: default;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ storage probe */
+
+.probe {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0;
+}
+
+.probe h1 {
+  font-size: 28px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.lede {
+  margin: 0;
+  color: var(--ink-mid);
+}
+
+.verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule);
+  padding: 20px;
+}
+
+.verdict.good {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+.verdict .age {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.verdict .caption {
+  color: var(--ink-mid);
+  font-size: 15px;
+}
+
+/* Greenbar banding: alternating rows, as on continuous ledger paper. */
+.facts {
+  margin: 0;
+  border: 1px solid var(--rule);
+}
+
+.facts > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+.facts > div:nth-child(odd) {
+  background: var(--band);
+}
+
+.facts > div:last-child {
+  border-bottom: none;
+}
+
+.facts dt {
+  color: var(--ink-muted);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.facts dd {
+  margin: 0;
+  text-align: right;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.facts dd.flag {
+  color: var(--warn);
+}
+
+.facts dd.mono {
+  font-family: var(--f-mono);
+  font-size: 12px;
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.hint,
+.footnote {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
+.footnote {
+  border-top: 1px solid var(--rule-soft);
+  padding-top: 16px;
+}

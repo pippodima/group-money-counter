@@ -34,6 +34,13 @@ tried and abandoned, and what's still nagging.
 | D13 | Import uses the same merge path as QR sync | The riskiest code then runs every time anyone takes a backup | 1 |
 | D14 | No encryption at rest in v1 | Threat model is a lost phone, not a forensic adversary. Revisit if that changes | 1 |
 | D15 | Single currency per group in v1 | Offline means no rate lookup; doing it properly needs per-expense captured rates | 1 |
+| D16 | `deviceId` is 16 hex chars, not a UUID | It is embedded in every HLC and every event id, so it repeats thousands of times in a log that must fit through a QR code | 2 |
+| D17 | HLC takes the wall clock as a parameter | Keeps `src/core` pure and lets tests drive time directly, including clocks that run backwards | 2 |
+| D18 | Purity is enforced by a test that scans the source, not by convention | A silent determinism bug can't be caught by review reliably; `src/core/purity.test.ts` bans the ambient reads outright | 2 |
+| D19 | HLC counter overflow rolls into the next millisecond | Throwing would brick the app on an event no user could have caused; rolling stays monotonic and self-corrects | 2 |
+| D20 | `appendEvents` skips existing ids rather than overwriting | Events are immutable, so a same-id row is identical — and a corrupted incoming copy can never clobber a good local one | 2 |
+| D21 | No CRDT library — plain HLC-ordered replay | Expenses are created by one person and edited by almost nobody; LWW falls out of ordered replay for free. Revisit only if real concurrent editing appears | 1 |
+| D22 | modulePreload polyfill off, Workbox runtime inlined | Both existed only to make `check-offline` pass with fewer exceptions; a bundle with zero `fetch(` is easier to keep honest than one with an allowlist | 2 |
 
 ---
 
@@ -133,3 +140,82 @@ anything real is built on top of it.
   should probably confirm first.
 - Editing an expense after settling up invalidates transfers people have already made.
   Allow with a warning, most likely, but it needs a decision before someone hits it.
+
+---
+
+## Entry 2 — 2026-08-11 · M0: scaffold and the storage gate
+
+Repo initialised, M0 built. Tests and build are green; the gate itself is now waiting on
+real time to pass.
+
+Landed on React 19, Vite 8, TypeScript 7, Vitest 4. Scaffolded by hand rather than from the
+Vite template — the template ships a demo counter, two SVG logos and a stylesheet that would
+all have been deleted immediately.
+
+### The HLC came out cleaner than expected
+
+Writing it pure forced a good shape: `hlcSend(local, wallMillis)` and
+`hlcReceive(local, remote, wallMillis)` take the clock as an argument rather than reading
+it (**D17**). Tests can then drive time directly — including the case that actually matters,
+a wall clock that jumps *backwards* after an NTP correction. The property
+"`hlcSend` always returns something strictly greater than its input, for any wall clock" is
+one line to state and covers the whole class.
+
+The encoding earns its keep too: fixed-width millis and hex counter mean lexicographic
+order *is* semantic order, so ordering the log is a plain string sort and IndexedDB can
+index it directly. That's a property test rather than a comment.
+
+Shortened the device id to 16 hex characters (**D16**). It looked like a detail until I
+noticed it appears in every HLC *and* every event id — so it's repeated twice per event in
+a payload that has to fit through a QR code. A UUID would have been ~2.5x the bytes for no
+benefit; it only ever needs to be unique, never stable or meaningful.
+
+### The offline check found four things, which is why it exists
+
+`scripts/check-offline.mjs` scans `dist/` and fails the build on any external host or
+network API. First run flagged four hits — and the useful part was that only one was noise:
+
+| Hit | Verdict |
+|---|---|
+| `fetch(e.href)` | **Real.** Vite's modulepreload polyfill. Same-origin only, but unnecessary for our targets — disabled it |
+| `importScripts` in `sw.js` | **Real construct.** Workbox pulling in its own runtime chunk — inlined it instead |
+| `bit.ly` | Inert. A `console.warn` string in Workbox's precache controller. `mode: 'production'` did *not* strip it. Allowlisted |
+| `react.dev` | Inert. React builds a docs URL into its minified error messages. Allowlisted |
+
+Fixed three rather than allowlisting them (**D22**). The allowlist now has three entries,
+each with a written reason, which is small enough to stay meaningful. If it ever grows past
+a handful, the check has stopped being a check.
+
+Also verified the purity guard fails when it should — temporarily added `Date.now()` and
+`Math.random()` to `hlc.ts` and confirmed the error names both. A guard that has never
+failed is not known to work.
+
+### Produced
+
+- Scaffold, PWA config, Pages workflow
+- `src/core/hlc.ts` + property tests, `src/core/purity.test.ts`
+- `src/db/database.ts`, `src/db/device.ts`
+- `src/screens/StorageProbe.tsx` — the gate
+- `scripts/check-offline.mjs`, `scripts/make-icons.mjs`
+- 17 tests passing, build clean
+
+Icons are generated by a zero-dependency script that writes PNGs directly — CRC32, zlib,
+PNG chunks. Slightly absurd, but it means no image toolchain, no binary blob whose
+provenance is unclear, and the icon is reproducible from source.
+
+### Next
+
+Deploy, install on iPhone from the home screen, open once, then **leave it alone for more
+than seven days**. The probe screen shows how long the data has survived and whether the
+launch was standalone. Record the outcome here.
+
+M1 can start in parallel — it's pure domain code and doesn't depend on the gate's answer.
+But nothing that persists user data should ship until the gate reports back.
+
+### Still unresolved
+
+- Prettier and ESLint not set up yet.
+- Navigation approach still undecided; deferred to M2, when there's more than one screen.
+- Event sequence numbers: planning to derive `seq` from the highest existing local event
+  rather than storing a counter, so there's no second thing to fall out of sync. Not built
+  yet.
