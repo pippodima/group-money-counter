@@ -6,7 +6,8 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 built and green. Waiting on the seven-day storage check before M1.
+**Status:** M0 built and deployed; its seven-day storage check is still running. M1 complete
+— 94 tests passing. Next: M2.
 
 ---
 
@@ -54,28 +55,31 @@ This milestone exists to answer one question before any real work depends on the
 Pure functions only. Every interesting bug in this project lives here.
 
 ### Modules
-- [ ] `types.ts` — model from DESIGN §2
-- [ ] `events.ts` — Event union, envelope construction, sequence counter
-- [ ] `fold.ts` — union by id, sort by HLC, replay, tombstone set
-- [ ] `apportion.ts` — largest remainder with memberId tiebreak
-- [ ] `split.ts` — the three modes reduced to per-member shares
-- [ ] `balances.ts` — net per member
-- [ ] `settle.ts` — greedy simplified, plus unsimplified pairwise matrix
+- [x] `types.ts` — model from DESIGN §2
+- [x] `events.ts` — Event union, envelope construction, merge, canonical ordering
+- [x] `fold.ts` — union by id, sort by HLC, replay, tombstone set
+- [x] `apportion.ts` — largest remainder with memberId tiebreak
+- [x] `split.ts` — the three modes reduced to per-member shares
+- [x] `balances.ts` — net per member
+- [x] `settle.ts` — greedy simplified, plus unsimplified per-expense matrix
 
 ### Validation
-- [ ] `payers` amounts sum to `totalCents`
-- [ ] `exact` split amounts sum to `totalCents`
-- [ ] weights strictly positive, sum > 0
-- [ ] `totalCents > 0`
-- [ ] Split references only members that exist
+- [x] `payers` amounts sum to `totalCents`
+- [x] `exact` split amounts sum to `totalCents`
+- [x] weights non-negative, sum > 0
+- [x] `totalCents > 0`
+- [x] Split references only members that exist
+- [x] `date` is a real calendar day — checked arithmetically, not via `Date`
 
 ### Property tests
-- [ ] `fold(shuffle(events)) === fold(events)` ← the important one
-- [ ] `Σ apportion(total, weights) === total`
-- [ ] `Σ net === 0`
-- [ ] Applying the settle-up plan zeroes every balance, both modes
-- [ ] Delete-then-update leaves it deleted
-- [ ] Merging a log with itself is a no-op
+- [x] `fold(shuffle(events)) === fold(events)` ← the important one
+- [x] `Σ apportion(total, weights) === total`
+- [x] `Σ net === 0`
+- [x] Applying the settle-up plan zeroes every balance, both modes
+- [x] Delete-then-update leaves it deleted
+- [x] Merging a log with itself is a no-op
+- [x] Merge is order-independent in both directions
+- [x] Simplified plan never exceeds n−1 transfers
 
 ---
 

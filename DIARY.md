@@ -41,6 +41,11 @@ tried and abandoned, and what's still nagging.
 | D20 | `appendEvents` skips existing ids rather than overwriting | Events are immutable, so a same-id row is identical — and a corrupted incoming copy can never clobber a good local one | 2 |
 | D21 | No CRDT library — plain HLC-ordered replay | Expenses are created by one person and edited by almost nobody; LWW falls out of ordered replay for free. Revisit only if real concurrent editing appears | 1 |
 | D22 | modulePreload polyfill off, Workbox runtime inlined | Both existed only to make `check-offline` pass with fewer exceptions; a bundle with zero `fetch(` is easier to keep honest than one with an allowlist | 2 |
+| D23 | Unsimplified mode settles **per expense**, not per member | Apportioning each debtor's share back across payers independently doesn't reconcile with what payers actually contributed; within one expense the nets provably sum to zero | 3 |
+| D24 | Folded state is sorted by id, not by date | Canonical order must use a replicated key so the determinism test is meaningful; display order is a view concern | 3 |
+| D25 | Zero-weight members never receive a leftover cent | Someone explicitly assigned no share being handed a stray cent is a visible bug, not a rounding detail | 3 |
+| D26 | Sequence numbers are derived from the log, not stored | Removes a counter that could drift out of step with the events it describes | 3 |
+| D27 | Test fixtures live in `src/testing/`, outside core | The purity guard scans all of `src/core`, and the fixture generator exists to produce randomness | 3 |
 
 ---
 
@@ -228,3 +233,82 @@ But nothing that persists user data should ship until the gate reports back.
 - Event sequence numbers: planning to derive `seq` from the highest existing local event
   rather than storing a counter, so there's no second thing to fall out of sync. Not built
   yet.
+
+---
+
+## Entry 3 — 2026-08-11 · M1: the domain core
+
+M1 done. 94 tests passing, typecheck and build clean. No UI, no persistence — everything
+here is a pure function of an event set.
+
+Modules: `types`, `events`, `fold`, `apportion`, `split`, `balances`, `settle`, `validate`.
+Test fixtures went in `src/testing/` rather than core (**D27**) — the purity guard scans all
+of `src/core`, and the fixture generator's whole job is producing randomness.
+
+### The property test earned its keep on day one
+
+`arbLedger` generates random *valid* ledgers — payer amounts and exact splits are built
+through `apportion`, so they always sum to the total. The properties then assert things
+that must hold for any ledger at all.
+
+Within minutes it found a real bug in unsimplified settle-up. The counterexample, after
+fast-check shrank it 45 times:
+
+    m0 pays 4605, m1 pays 27627, split equally between them
+
+Balances said m0 owed **11511**. `pairwise` produced **11510**.
+
+The cause: the original version took each debtor's share and apportioned it back across the
+payers independently, then dropped self-debt. Those separate roundings don't sum to what
+each payer actually contributed — 4605 came out as 4606 across two apportionments, and the
+stray cent disappeared along with the self-debt.
+
+Fixed by settling **per expense** (**D23**). Within a single expense the amounts paid and
+the shares owed both sum to the total, so the members' net positions sum to exactly zero
+and clear with whole cents. Debts accumulate across expenses; opposing pairs cancel; nothing
+routes through a third party. All the hand-written scenario tests still passed unchanged,
+which was reassuring — the fix was to the arithmetic, not the semantics.
+
+This is exactly the class of bug the design doc warned about: a one-cent divergence, no
+error, no crash, and two phones quietly disagreeing forever. No scenario test I'd have
+thought to write would have caught it. It needed a multi-payer expense whose proportional
+split lands precisely on a .5 boundary.
+
+### The other thing the tests caught was my own test
+
+A property comparing apportioned shares to their exact values failed on
+`total=1, entries=[["!",0],[" ",1]]`. The code was right; the test compared
+`[...map.values()]` positionally against an array built in *input* order, and `apportion`
+returns members in canonical sorted order. Rewrote it to compare by member id.
+
+Worth noting because it's the same trap the production code has to avoid — **positional
+assumptions are exactly what breaks determinism** (**D24**). The test made the mistake the
+code is designed to prevent.
+
+### Smaller decisions
+
+- Zero-weight members are excluded from the leftover-cent distribution (**D25**). Someone
+  explicitly given no share should never be handed a stray cent; it reads as a bug even
+  though the total still balances.
+- `nextSeq` derives sequence numbers from the log rather than storing a counter (**D26**).
+- Date validation is arithmetic, not `Date` — which core can't touch anyway, and which
+  would happily accept `2026-02-31` by rolling it into March.
+
+### Two things that bit and are worth remembering
+
+**Vitest doesn't typecheck.** All 94 tests passed while `tsc` had three errors. CI runs both
+so it can't ship broken, but locally `npm run test:watch` will happily stay green over
+uncompilable code. Run `npm run build` before believing anything.
+
+**The purity guard produced a false positive.** Its import-scanning regex spans newlines to
+catch multi-line import lists, and a prose comment containing "export … from" parsed as an
+import. Now strips comments before scanning. The ambient-read check already stripped both
+comments and strings; the import check needed comments gone but strings kept, so they're
+separate passes.
+
+### Next
+
+M2 — the single-device UI. The domain layer is complete and tested, so M2 is wiring: an
+IndexedDB-backed store that appends events and refolds, then the screens.
+
+Still open: navigation approach, and Prettier/ESLint.

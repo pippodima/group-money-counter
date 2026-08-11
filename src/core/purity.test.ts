@@ -48,11 +48,20 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
+/**
+ * Strips comments.
+ *
+ * The import scan needs this on its own: its pattern spans newlines to catch
+ * multi-line import lists, so prose containing the words "export" and "from"
+ * would otherwise read as an import of whatever came next in quotes.
+ */
+function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+}
+
 /** Strips comments and string literals so matches come from real code only. */
 function strip(source: string): string {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '')
+  return stripComments(source)
     .replace(/'(?:[^'\\\n]|\\.)*'/g, "''")
     .replace(/"(?:[^"\\\n]|\\.)*"/g, '""')
     .replace(/`(?:[^`\\]|\\.)*`/g, '``');
@@ -77,7 +86,7 @@ describe('src/core stays pure', () => {
   it.each(files.map((f) => [f.slice(f.indexOf('src/')), f] as const))(
     '%s imports only from within core',
     (_label, path) => {
-      const code = readFileSync(path, 'utf8');
+      const code = stripComments(readFileSync(path, 'utf8'));
       const external = [...code.matchAll(IMPORT_FROM)]
         .map((m) => m[1] as string)
         .filter((spec) => !spec.startsWith('.'));
