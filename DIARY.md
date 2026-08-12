@@ -46,6 +46,12 @@ tried and abandoned, and what's still nagging.
 | D25 | Zero-weight members never receive a leftover cent | Someone explicitly assigned no share being handed a stray cent is a visible bug, not a rounding detail | 3 |
 | D26 | Sequence numbers are derived from the log, not stored | Removes a counter that could drift out of step with the events it describes | 3 |
 | D27 | Test fixtures live in `src/testing/`, outside core | The purity guard scans all of `src/core`, and the fixture generator exists to produce randomness | 3 |
+| D28 | Hash routing | GitHub Pages has no server-side rewrite, so history routing needs the `404.html` trick; hashes never reach the server and keep the phone's back gesture working | 4 |
+| D29 | Module-level store with `useSyncExternalStore`, no React context | There is exactly one ledger per app; a provider tree buys nothing and costs re-render care | 4 |
+| D30 | Percentages that don't total 100 are divided proportionally, with a note | Blocking the save mid-typing is worse than showing what will happen; the maths is proportional either way | 4 |
+| D31 | The HLC is rebuilt from the highest stamp in the log at startup | No second piece of persisted state that could drift out of step with the events it describes | 4 |
+| D32 | Screens have jsdom render smoke tests | Six screens were written without ever being run; typechecking cannot see a crash on an empty list | 4 |
+| D33 | A separator with exactly three digits after it is a grouping mark | `1.234` is far more often a thousand than 1.23; four or more digits is read as a decimal instead | 4 |
 
 ---
 
@@ -312,3 +318,77 @@ M2 — the single-device UI. The domain layer is complete and tested, so M2 is w
 IndexedDB-backed store that appends events and refolds, then the screens.
 
 Still open: navigation approach, and Prettier/ESLint.
+
+---
+
+## Entry 4 — 2026-08-12 · M2: it's an app now
+
+M2 done. 133 tests. You can create a group, add expenses across all four split modes, see
+balances, and settle up. Still single-device — no sync until M4.
+
+Seven screens, a hash router (**D28**), and a module-level store read through
+`useSyncExternalStore` (**D29**). No React context: there is exactly one ledger per app, so
+a provider tree buys nothing.
+
+### Two kinds of test, for two kinds of bug
+
+The domain layer had property tests. What those can't see is *wiring* — whether events
+actually reach disk, whether the clock survives a restart, whether a screen crashes on an
+empty list. So M2 added two suites:
+
+- **Store integration** against `fake-indexeddb`: create, relaunch, merge two devices, check
+  they converge. This is where "does it actually persist" gets answered.
+- **Screen smoke tests** in jsdom (**D32**), rendering every route against a seeded store.
+
+That second one mattered more than expected, because I wrote six screens without ever
+running them. Both suites found real problems immediately.
+
+### The module identity trap
+
+The screen tests kept rendering the *setup* screen even after seeding a group. The cause:
+`App` was statically imported at the top of the test file, so it bound to whichever
+`ledger.js` instance existed when the file was first evaluated — while `vi.resetModules()`
+in `beforeEach` handed the test a *different* instance. Two module graphs, two stores, one
+of them invisible.
+
+Fixed by importing `App` dynamically inside the render helper, after the reset. Worth
+remembering: **`vi.resetModules()` only affects imports that happen after it**, and a static
+import at the top of the file is not one of them.
+
+### The arithmetic caught me out again
+
+I wrote a balances assertion expecting Anna to be up €8.34 on a €12.50 bill split three
+ways. Wrong: 1250 / 3 is 417 / 417 / 416, and the two spare cents go to `m0` and `m1` on the
+member-id tiebreak. Anna paid the whole thing, so she is up **8.33**.
+
+Second time this milestone-and-a-half that I've written the wrong number and the code has
+been right. The largest-remainder tiebreak is not intuitive, which is precisely why it is
+pinned down by a test rather than left to judgement.
+
+### Money input
+
+`parseMoney` accepts both decimal conventions, because a group on a trip will genuinely have
+phones set to both — `12,50` and `12.50` are the same amount. The awkward case is a lone
+separator with three digits after it. `1.234` could be 1,234 or 1.23; resolved toward
+grouping (**D33**), since money is rarely written to three places. Four or more digits can't
+be grouping, so those read as a decimal with the excess dropped.
+
+### Smaller things
+
+- The storage probe is still reachable at `#/probe`, so the seven-day result can be read
+  once the app has a real front page.
+- `matchMedia` is now called optionally. jsdom lacks it, which surfaced a real flaw: the
+  probe was reporting *any* failure as "IndexedDB could not be opened", including one that
+  had nothing to do with storage.
+- Percent splits that don't total 100 are divided proportionally with a note (**D30**),
+  rather than blocking the save while someone is still typing.
+- Members are hidden, never removed — the button says "Hide", and the tooltip explains their
+  history stays.
+
+### Next
+
+M3: export and import. Small, and it exercises the merge path on real data well before QR
+sync exists. The store already has `merge()` with its own tests, so M3 is mostly file
+handling and a summary screen.
+
+Still open: Prettier and ESLint. The seven-day storage gate reads on 18 August.

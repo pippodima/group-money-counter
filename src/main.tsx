@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { StorageProbe } from './screens/StorageProbe.js';
+import { App } from './App.js';
 import './styles.css';
 
 const root = document.getElementById('root');
@@ -8,6 +8,6 @@ if (!root) throw new Error('missing #root');
 
 createRoot(root).render(
   <StrictMode>
-    <StorageProbe />
+    <App />
   </StrictMode>,
 );

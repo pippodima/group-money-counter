@@ -4,6 +4,7 @@
   --ground: #fbfcf9;
   --band: #eaf0e5;
   --surface: #f3f7f0;
+  --raised: #ffffff;
   --ink: #17201a;
   --ink-mid: #3b4a3f;
   --ink-muted: #5f6c62;
@@ -13,7 +14,10 @@
   --accent-ink: #1b5335;
   --accent-soft: #ddebe1;
   --danger: #9e3030;
+  --danger-soft: #f6e4e1;
   --warn: #7e5310;
+  --up: #256b47;
+  --down: #9e3030;
 
   --f-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   --f-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
@@ -26,6 +30,7 @@
     --ground: #0e1310;
     --band: #171e18;
     --surface: #141b16;
+    --raised: #1a221b;
     --ink: #e3eae1;
     --ink-mid: #b7c3b8;
     --ink-muted: #94a196;
@@ -35,7 +40,10 @@
     --accent-ink: #8ad3a8;
     --accent-soft: #16261c;
     --danger: #e0837a;
+    --danger-soft: #2a1a19;
     --warn: #d6a552;
+    --up: #6fc291;
+    --down: #e0837a;
   }
 }
 
@@ -55,41 +63,578 @@ body {
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
-    env(safe-area-inset-left);
+  -webkit-text-size-adjust: 100%;
 }
+
+/* ---------------------------------------------------------------- layout */
+
+.screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 12px;
+  border-bottom: 1px solid var(--rule);
+  position: sticky;
+  top: 0;
+  background: var(--ground);
+  z-index: 5;
+}
+
+.topbar .titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar p {
+  margin: 1px 0 0;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.body {
+  flex: 1;
+  padding: 18px 16px calc(env(safe-area-inset-bottom) + 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.body.with-tabs {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 92px);
+}
+
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  border-top: 1px solid var(--rule);
+  background: var(--ground);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 10;
+}
+
+.tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  font: inherit;
+  font-size: 13px;
+  padding: 13px 4px;
+  cursor: pointer;
+  border-top: 2px solid transparent;
+  margin-top: -1px;
+}
+
+.tab.current {
+  color: var(--accent);
+  border-top-color: var(--accent);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- inputs */
+
+input,
+select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 11px 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input[type='checkbox'] {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  accent-color: var(--accent);
+  padding: 0;
+}
+
+input.short {
+  width: 6rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field-label {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.field-hint {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+
+.row > * {
+  flex: 1;
+}
+
+.inline {
+  display: flex;
+  gap: 8px;
+}
+
+.inline input {
+  flex: 1;
+}
+
+.member-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------- buttons */
 
 button {
   font: inherit;
-  color: var(--ground);
-  background: var(--accent);
-  border: none;
-  border-radius: 6px;
-  padding: 10px 16px;
   cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  background: var(--raised);
+  color: var(--ink);
+  padding: 10px 14px;
 }
 
 button:disabled {
-  background: var(--rule);
-  color: var(--ink-muted);
+  opacity: 0.5;
   cursor: default;
 }
 
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--ground);
+  font-weight: 600;
+  padding: 14px;
 }
 
-/* ------------------------------------------------------------ storage probe */
+button.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: none;
+}
 
-.probe {
-  max-width: 34rem;
-  margin: 0 auto;
-  padding: 40px 20px 64px;
+button.ghost {
+  background: none;
+  border: none;
+  color: var(--accent);
+  padding: 6px 0;
+  align-self: flex-start;
+  font-size: 14px;
+}
+
+button.icon {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 8px;
+  flex: none;
+}
+
+.actions {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.fab {
+  position: fixed;
+  right: max(16px, calc(50% - 17rem + 16px));
+  bottom: calc(env(safe-area-inset-bottom) + 66px);
+  width: 54px;
+  height: 54px;
+  border-radius: 27px;
+  background: var(--accent);
+  border: none;
+  color: var(--ground);
+  font-size: 28px;
+  line-height: 1;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 0.22);
+  z-index: 8;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.seg {
+  flex: 1;
+  border: none;
+  border-radius: 0;
+  background: var(--raised);
+  color: var(--ink-muted);
+  font-size: 14px;
+  padding: 10px 6px;
+  border-right: 1px solid var(--rule);
+}
+
+.seg:last-child {
+  border-right: none;
+}
+
+.seg.current {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------ lists and ledgers */
+
+.daygroups {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.dayhead {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.ledger {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ledger li + li {
+  border-top: 1px solid var(--rule-soft);
+}
+
+/* Greenbar banding, as on continuous ledger paper. */
+.ledger li:nth-child(odd) {
+  background: var(--band);
+}
+
+.ledger button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 12px 14px;
+  text-align: left;
+}
+
+.what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.desc {
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.who {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.amount-cell {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rowline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rowline.off {
+  opacity: 0.45;
+}
+
+.rowpick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.rowname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowline input.amount {
+  width: 7rem;
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowline input.weight {
+  width: 4.5rem;
+  flex: none;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.share {
+  width: 5.5rem;
+  text-align: right;
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+.split-rows {
+  margin-top: 4px;
+}
+
+.tally {
+  margin: 0;
+  font-size: 14px;
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+}
+
+.tally.settled {
+  color: var(--accent);
+}
+
+/* -------------------------------------------------------------- balances */
+
+.balances {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.bal-name {
+  font-weight: 600;
+}
+
+.inactive {
+  color: var(--ink-muted);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.bal-net {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.up .bal-net {
+  color: var(--up);
+}
+
+.down .bal-net {
+  color: var(--down);
+}
+
+.bar {
+  display: block;
+  height: 4px;
+  background: var(--rule-soft);
+  border-radius: 2px;
+  margin: 6px 0 4px;
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink-muted);
+}
+
+.up .bar span {
+  background: var(--up);
+}
+
+.down .bar span {
+  background: var(--down);
+}
+
+.bal-detail {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+/* -------------------------------------------------------------- settling */
+
+.transfers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.transfers li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--raised);
+}
+
+.flow {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flow .from,
+.flow .to {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow .to {
+  font-weight: 600;
+}
+
+.arrow {
+  color: var(--accent);
+  flex: none;
+}
+
+.transfer-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.past {
+  margin-top: 6px;
+}
+
+/* ---------------------------------------------------------------- people */
+
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.people li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.people li.inactive-row input {
+  color: var(--ink-muted);
+}
+
+.people input {
+  flex: 1;
+}
+
+.person-net {
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------- misc */
+
+.setup h1 {
+  font-size: 27px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  margin: 0;
 }
 
 .eyebrow {
@@ -101,16 +646,79 @@ a:focus-visible {
   margin: 0;
 }
 
+.lede {
+  margin: 0;
+  color: var(--ink-mid);
+}
+
+.lede.small {
+  font-size: 14px;
+}
+
+.danger-text {
+  color: var(--danger);
+}
+
+.empty {
+  text-align: center;
+  padding: 48px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.empty-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 17px;
+}
+
+.empty-hint {
+  margin: 0 0 8px;
+  color: var(--ink-muted);
+  max-width: 24rem;
+}
+
+.problems {
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--danger);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.footnote {
+  font-size: 13px;
+  color: var(--ink-muted);
+  border-top: 1px solid var(--rule-soft);
+  padding-top: 14px;
+  margin: 4px 0 0;
+}
+
+/* --------------------------------------------------------- storage probe */
+
+.probe {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .probe h1 {
   font-size: 28px;
   font-weight: 750;
   letter-spacing: -0.02em;
   margin: 0;
-}
-
-.lede {
-  margin: 0;
-  color: var(--ink-mid);
 }
 
 .verdict {
@@ -140,7 +748,6 @@ a:focus-visible {
   font-size: 15px;
 }
 
-/* Greenbar banding: alternating rows, as on continuous ledger paper. */
 .facts {
   margin: 0;
   border: 1px solid var(--rule);
@@ -166,7 +773,6 @@ a:focus-visible {
 .facts dt {
   color: var(--ink-muted);
   font-size: 13px;
-  letter-spacing: 0.02em;
   white-space: nowrap;
 }
 
@@ -194,14 +800,8 @@ a:focus-visible {
   margin: 0;
 }
 
-.hint,
-.footnote {
+.hint {
   font-size: 13px;
   color: var(--ink-muted);
   margin: 0;
-}
-
-.footnote {
-  border-top: 1px solid var(--rule-soft);
-  padding-top: 16px;
 }

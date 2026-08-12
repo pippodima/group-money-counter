@@ -6,8 +6,8 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 built and deployed; its seven-day storage check is still running. M1 complete
-— 94 tests passing. Next: M2.
+**Status:** M0 deployed, its seven-day storage check still running. M1 and M2 complete —
+133 tests passing. Next: M3.
 
 ---
 
@@ -28,9 +28,8 @@ This milestone exists to answer one question before any real work depends on the
 - [x] `vite-plugin-pwa`, manifest, icons, `registerType: 'autoUpdate'`
 - [x] Vite `base` set to `/group-money-counter/` for Pages
 - [x] GitHub Actions workflow building and deploying to Pages
-- [ ] Decide navigation: hash routing or plain state-based screens — Pages has no server-side
-      rewrite, so history routing needs the `404.html` trick. Deferred to M2; the probe is a
-      single screen and doesn't need it
+- [x] Decide navigation — hash routing. Pages has no server-side rewrite, so history routing
+      would need the `404.html` trick, and hashes keep the phone's back gesture working
 - [x] Build assertion that fails CI if `dist/` contains any external URL or network call —
       `scripts/check-offline.mjs`
 
@@ -90,24 +89,25 @@ Pure functions only. Every interesting bug in this project lives here.
 Useful as a bookkeeper's tool at this point, with no sync at all.
 
 ### Plumbing
-- [ ] Store layer: load events → fold → reactive state
-- [ ] `append(event)` action: write to IDB, refold, re-render
-- [ ] Money input that accepts `12,50` and `12.50`, mobile numeric keyboard, stores cents
-- [ ] Currency display via `Intl.NumberFormat` — display layer only, never `src/core/`
+- [x] Store layer: load events → fold → reactive state
+- [x] `append(event)` action: write to IDB, refold, re-render
+- [x] Money input that accepts `12,50` and `12.50`, mobile numeric keyboard, stores cents
+- [x] Currency display via `Intl.NumberFormat` — display layer only, never `src/core/`
 
 ### Screens
-- [ ] Create group — name, currency, members
-- [ ] Member management, including deactivate
-- [ ] Expense form — description, amount, date, payer(s)
-- [ ] Split editor: equal — member checkbox list
-- [ ] Split editor: shares — steppers, live preview of each person's amount
-- [ ] Split editor: exact — amount fields with a running "€X.XX left to assign"
-- [ ] Multi-payer toggle, hidden by default
-- [ ] Expense list grouped by date
-- [ ] Expense detail, edit, delete
-- [ ] Balances screen
-- [ ] Settle-up screen with the simplify toggle
-- [ ] Record a settlement
+- [x] Create group — name, currency, members
+- [x] Member management, including deactivate
+- [x] Expense form — description, amount, date, payer(s)
+- [x] Split editor: equal — member checkbox list
+- [x] Split editor: shares — live preview of each person's amount
+- [x] Split editor: percent — proportional, with a note when it isn't 100
+- [x] Split editor: exact — amount fields with a running "left to assign"
+- [x] Multi-payer toggle, hidden by default
+- [x] Expense list grouped by date
+- [x] Expense detail, edit, delete
+- [x] Balances screen
+- [x] Settle-up screen with the simplify toggle
+- [x] Record a settlement, and undo one
 
 ---
 

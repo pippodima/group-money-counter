@@ -57,7 +57,9 @@ async function load(): Promise<Snapshot> {
     deviceId: await getDeviceId(),
     events: await countEvents(),
     persisted: (await navigator.storage?.persisted?.().catch(() => false)) ?? false,
-    standalone: window.matchMedia('(display-mode: standalone)').matches,
+    // Optional call: every real browser has matchMedia, but a missing one
+    // should not be reported to the user as a storage failure.
+    standalone: window.matchMedia?.('(display-mode: standalone)').matches ?? false,
     usage: estimate?.usage,
     quota: estimate?.quota,
   };
