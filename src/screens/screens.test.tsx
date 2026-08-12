@@ -111,6 +111,35 @@ describe('with a ledger', () => {
     expect(screen.getByRole('button', { name: /add expense/i })).toBeDefined();
   });
 
+  it('picks the payer in one tap, with the first person preselected', async () => {
+    await launch('/new');
+    const payers = await screen.findByRole('radiogroup', { name: /paid by/i });
+    const options = within(payers).getAllByRole('radio');
+
+    expect(options).toHaveLength(3);
+    expect((options[0] as HTMLInputElement).checked).toBe(true);
+
+    await act(async () => (options[2] as HTMLInputElement).click());
+    expect((options[2] as HTMLInputElement).checked).toBe(true);
+    expect((options[0] as HTMLInputElement).checked).toBe(false);
+  });
+
+  it('falls back to a dropdown once the chips would not fit', async () => {
+    await act(async () => {
+      await store.append(
+        ...Array.from({ length: 6 }, (_, i) => ({
+          t: 'member.add' as const,
+          memberId: `x${i}`,
+          name: `Extra ${i}`,
+        })),
+      );
+    });
+
+    await launch('/new');
+    expect(await screen.findByRole('combobox')).toBeDefined();
+    expect(screen.queryByRole('radiogroup', { name: /paid by/i })).toBeNull();
+  });
+
   it('opens an existing expense for editing, prefilled', async () => {
     await launch('/expense/e1');
     expect(await screen.findByRole('heading', { name: /edit expense/i })).toBeDefined();

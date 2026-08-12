@@ -13,6 +13,12 @@ import { Field, Problems, Screen } from '../ui/Chrome.js';
 
 type Mode = 'equal' | 'shares' | 'percent' | 'exact';
 
+/**
+ * Above this many people the chips wrap into an unreadable block and a
+ * dropdown is genuinely faster to scan.
+ */
+const CHIP_LIMIT = 8;
+
 const MODES: ReadonlyArray<{ id: Mode; label: string }> = [
   { id: 'equal', label: 'Equally' },
   { id: 'shares', label: 'Shares' },
@@ -218,6 +224,26 @@ export function ExpenseForm({ expenseId }: { expenseId?: string | undefined }) {
                   }
                 />
               </div>
+            ))}
+          </div>
+        ) : members.length <= CHIP_LIMIT ? (
+          // One tap instead of open-the-list-then-find-the-name. Radio inputs
+          // rather than buttons so arrow keys and screen readers still treat
+          // it as the single choice it is.
+          <div className="chips" role="radiogroup" aria-label="Paid by">
+            {members.map((member) => (
+              <label
+                key={member.id}
+                className={payerId === member.id ? 'chip current' : 'chip'}
+              >
+                <input
+                  type="radio"
+                  name="payer"
+                  checked={payerId === member.id}
+                  onChange={() => setPayerId(member.id)}
+                />
+                <span>{member.name}</span>
+              </label>
             ))}
           </div>
         ) : (

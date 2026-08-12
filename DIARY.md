@@ -52,6 +52,7 @@ tried and abandoned, and what's still nagging.
 | D31 | The HLC is rebuilt from the highest stamp in the log at startup | No second piece of persisted state that could drift out of step with the events it describes | 4 |
 | D32 | Screens have jsdom render smoke tests | Six screens were written without ever being run; typechecking cannot see a crash on an empty list | 4 |
 | D33 | A separator with exactly three digits after it is a grouping mark | `1.234` is far more often a thousand than 1.23; four or more digits is read as a decimal instead | 4 |
+| D34 | Payer is picked with name chips, falling back to a dropdown above 8 people | A dropdown costs two interactions and a visual search for the single most common field in the app | 5 |
 
 ---
 
@@ -392,3 +393,27 @@ sync exists. The store already has `merge()` with its own tests, so M3 is mostly
 handling and a summary screen.
 
 Still open: Prettier and ESLint. The seven-day storage gate reads on 18 August.
+
+---
+
+## Entry 5 — 2026-08-12 · First real use, first UX fix
+
+Ran the app on localhost for the first time. One thing came back: **picking who paid was
+too slow**. It was a `<select>`, which costs two interactions and a visual search through a
+list — for the field touched on literally every expense.
+
+Replaced with name chips (**D34**): every member is a tappable pill, one tap to choose.
+Falls back to the dropdown above eight people, where the chips would wrap into an
+unreadable block and scanning a list genuinely becomes faster.
+
+Built on real `<input type="radio">` elements with the visuals layered over them, rather
+than `<button>`s with `aria-pressed`. Radios are what this actually is — one choice from a
+set — so arrow-key navigation and screen-reader grouping come for free instead of being
+reimplemented badly.
+
+Two tests added: that the first person is preselected and one tap switches the choice, and
+that the dropdown returns above the threshold.
+
+Worth noting for later milestones: this is the kind of problem no test suite finds. The
+`<select>` was correct, accessible, and fully covered. It was just slower than it needed to
+be, and only using it showed that.
