@@ -53,6 +53,11 @@ tried and abandoned, and what's still nagging.
 | D32 | Screens have jsdom render smoke tests | Six screens were written without ever being run; typechecking cannot see a crash on an empty list | 4 |
 | D33 | A separator with exactly three digits after it is a grouping mark | `1.234` is far more often a thousand than 1.23; four or more digits is read as a decimal instead | 4 |
 | D34 | Payer is picked with name chips, falling back to a dropdown above 8 people | A dropdown costs two interactions and a visual search for the single most common field in the app | 5 |
+| D35 | Nothing from outside the device enters the log unvalidated | The log is append-only: a malformed event can never be edited out, only superseded, and a bad split throws every time balances are computed | 6 |
+| D36 | Import is all-or-nothing | Half-importing a damaged file leaves a ledger that looks complete and quietly isn't | 6 |
+| D37 | `merge()` reports what changed, not just how many events moved | "Added 6 expenses" is the sentence the user needs; M4's post-scan summary needs the same numbers | 6 |
+| D38 | Importing a backup from a different group is refused | Its events would be stored but invisible until multi-group lands, which reads as data loss | 6 |
+| D39 | `merge()` stays mechanical; whether a log *should* merge is the caller's call | An import and a QR scan need to ask the user different questions about the same situation | 6 |
 
 ---
 
@@ -417,3 +422,57 @@ that the dropdown returns above the threshold.
 Worth noting for later milestones: this is the kind of problem no test suite finds. The
 `<select>` was correct, accessible, and fully covered. It was just slower than it needed to
 be, and only using it showed that.
+
+---
+
+## Entry 6 — 2026-08-14 · M3: export, import, and not trusting files
+
+M3 done. 169 tests. There is now a way to get a ledger off the device and back on again,
+which until QR sync exists is the only protection against losing everything.
+
+Export writes the event log verbatim. Import runs the same `merge()` the QR path will use —
+the point being that the riskiest code in the project now gets exercised every time anyone
+takes a backup, rather than only during sync.
+
+A pleasant consequence of merge being a set union: **importing an old backup is always
+safe.** It adds back whatever the file still holds and changes nothing else. There is no
+"restore" that overwrites, so there is no way to lose today's expenses by importing last
+week's file. That falls out of the event-log design rather than being designed in.
+
+### The real work was validation
+
+A backup file can be hand-edited, and the log is append-only — a malformed event cannot be
+edited out later, only superseded. Worse, an expense whose `exact` split doesn't sum would
+throw *every time* balances were computed, so one bad file would brick the balances screen
+permanently.
+
+So `isEnvelope` / `isEvent` went into core (**D35**): structural validation of every event
+from outside, down to whether a split's weights are numbers and a date is a calendar day.
+M4 reuses this for scanned frames, which was the reason to put it in core rather than in
+the backup module.
+
+Import is all-or-nothing (**D36**). A partial import leaves a ledger that looks complete and
+quietly isn't, and the refusal names which entry was damaged — *"Entry 2 of 47 is damaged,
+so nothing was imported"* — because "invalid file" tells you nothing about what to fix.
+
+The property that mattered most here was the inverse one: **the validator must accept
+everything this app produces.** A validator strict enough to reject its own output would
+make every backup unreadable, and only fail on someone's real data. It runs over randomly
+generated ledgers, including a JSON round trip.
+
+### merge() got more honest
+
+It returned a bare count. Now it reports expenses, settlements and members separately
+(**D37**), because "Added 6 expenses and 1 person" is the sentence the user actually needs —
+and M4's post-scan summary needs exactly the same numbers.
+
+It stays mechanical about *whether* to merge (**D39**): it stores what it is given. The
+caller decides whether a log belongs here, because an import and a scan want to ask the user
+different things. The import screen refuses a backup from a different group (**D38**) — its
+events would be stored but invisible until multi-group lands, which reads as data loss.
+
+### Next
+
+M4, QR sync. The largest milestone left, and the one the whole design exists to serve.
+
+Still open: Prettier and ESLint. The storage gate reads on 18 August — four days.

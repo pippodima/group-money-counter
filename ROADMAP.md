@@ -6,8 +6,8 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 deployed, its seven-day storage check still running. M1 and M2 complete —
-133 tests passing. Next: M3.
+**Status:** M0 deployed, its seven-day storage check still running. M1–M3 complete —
+169 tests passing. Next: M4, QR sync.
 
 ---
 
@@ -117,10 +117,14 @@ Useful as a bookkeeper's tool at this point, with no sync at all.
 
 Ships backup, and exercises the merge path on real data before QR exists.
 
-- [ ] Export `{ format: "gmc/1", … }` as a file download
-- [ ] Import via file picker → merge → summary
-- [ ] Merge summary component — "added N expenses, M possible duplicates" (reused by M4)
-- [ ] Format version check with a clear refusal on mismatch
+- [x] Export `{ format: "gmc/1", … }` as a file download
+- [x] Import via file picker → merge → summary
+- [x] Merge summary — "added N expenses and M people" (reused by M4)
+- [x] Format version check with a clear refusal on mismatch
+- [x] Structural validation of untrusted events — `isEnvelope` / `isEvent` in core, so a
+      hand-edited file cannot poison an append-only log. M4 reuses this for scanned frames
+- [x] All-or-nothing import: a damaged entry is named and nothing is stored
+- [x] Refuse a backup belonging to a different group, until multiple groups exist
 
 ---
 

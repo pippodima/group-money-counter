@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { balances } from '../core/balances.js';
 import { formatSigned } from '../lib/money.js';
+import { navigate } from '../lib/router.js';
 import { append, newId, useLedger } from '../store/ledger.js';
 import { Field, Problems, Screen } from '../ui/Chrome.js';
 
@@ -94,6 +95,10 @@ export function Members() {
           }}
         />
       </Field>
+
+      <button type="button" onClick={() => navigate('/backup')}>
+        Back up or restore
+      </button>
 
       <p className="footnote">
         {eventCount} event{eventCount === 1 ? '' : 's'} stored on this device · {currency}

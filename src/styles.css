@@ -751,6 +751,37 @@ button.icon {
   margin: 4px 0 0;
 }
 
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.notice {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-left-width: 3px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 14px;
+}
+
+input[type='file'] {
+  padding: 10px;
+  font-size: 14px;
+  background: var(--band);
+}
+
 /* --------------------------------------------------------- storage probe */
 
 .probe {

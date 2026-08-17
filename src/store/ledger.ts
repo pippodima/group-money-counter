@@ -118,17 +118,33 @@ export async function append(...events: readonly Event[]): Promise<void> {
   publish();
 }
 
+/** What a merge actually changed, for reporting back to the user. */
+export interface MergeResult {
+  events: number;
+  expenses: number;
+  settlements: number;
+  members: number;
+}
+
+const NOTHING_MERGED: MergeResult = { events: 0, expenses: 0, settlements: 0, members: 0 };
+
 /**
  * Merges a log from elsewhere — an import, or later a QR scan.
  *
- * Returns how many events were new. The local clock is advanced past
- * everything observed, so anything stamped afterwards sorts correctly against
- * the events just learned.
+ * The local clock is advanced past everything observed, so anything stamped
+ * afterwards sorts correctly against the events just learned.
+ *
+ * Mechanical by design: it stores what it is given and reports what changed.
+ * Deciding whether a log *should* be merged — whether it belongs to this
+ * group at all — is the caller's business, because an import and a scan want
+ * to ask the user different things about it.
  */
-export async function merge(incoming: readonly Envelope[]): Promise<number> {
+export async function merge(incoming: readonly Envelope[]): Promise<MergeResult> {
   const known = new Set(envelopes.map((envelope) => envelope.id));
   const fresh = incoming.filter((envelope) => !known.has(envelope.id));
-  if (fresh.length === 0) return 0;
+  if (fresh.length === 0) return NOTHING_MERGED;
+
+  const before = view.state;
 
   const now = Date.now();
   for (const envelope of fresh) clock = hlcReceive(clock, decodeHlc(envelope.hlc), now);
@@ -138,7 +154,13 @@ export async function merge(incoming: readonly Envelope[]): Promise<number> {
   groupId ??= groupsIn(envelopes)[0];
   publish();
 
-  return fresh.length;
+  const after = view.state;
+  return {
+    events: fresh.length,
+    expenses: after.expenses.length - before.expenses.length,
+    settlements: after.settlements.length - before.settlements.length,
+    members: after.members.length - before.members.length,
+  };
 }
 
 /** The whole log, for export. */

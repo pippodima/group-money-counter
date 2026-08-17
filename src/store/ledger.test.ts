@@ -165,9 +165,45 @@ describe('merging between devices', () => {
     await marco.merge(shared);
     await marco.append(dinner);
 
-    expect(await anna.merge(marco.allEnvelopes())).toBe(1);
-    expect(await anna.merge(marco.allEnvelopes())).toBe(0);
+    // Reports what actually landed, not just how many events moved.
+    expect(await anna.merge(marco.allEnvelopes())).toEqual({
+      events: 1,
+      expenses: 1,
+      settlements: 0,
+      members: 0,
+    });
+    expect(await anna.merge(marco.allEnvelopes())).toMatchObject({ events: 0 });
     expect(anna.ledgerView().state.expenses).toHaveLength(1);
+  });
+
+  it('counts people and payments separately when reporting a merge', async () => {
+    const anna = await newDevice();
+    await seedGroup(anna);
+
+    const marco = await newDevice();
+    await marco.merge(anna.allEnvelopes());
+    await marco.append(
+      { t: 'member.add', memberId: 'm2', name: 'Sara' },
+      dinner,
+      {
+        t: 'settlement.create',
+        settlementId: 's1',
+        fields: {
+          fromMemberId: 'm1',
+          toMemberId: 'm0',
+          amountCents: 500,
+          date: '2026-08-12',
+          note: '',
+        },
+      },
+    );
+
+    expect(await anna.merge(marco.allEnvelopes())).toEqual({
+      events: 3,
+      expenses: 1,
+      settlements: 1,
+      members: 1,
+    });
   });
 
   it('converges to identical state after both directions', async () => {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { routeParam, useRoute } from './lib/router.js';
 import { initLedger, useLedger } from './store/ledger.js';
+import { Backup } from './screens/Backup.js';
 import { Balances } from './screens/Balances.js';
 import { ExpenseForm } from './screens/ExpenseForm.js';
 import { Expenses } from './screens/Expenses.js';
@@ -55,6 +56,7 @@ export function App() {
   if (route === '/balances') return <Balances />;
   if (route === '/settle') return <SettleUp />;
   if (route === '/members') return <Members />;
+  if (route === '/backup') return <Backup />;
 
   return <Expenses />;
 }

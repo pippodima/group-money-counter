@@ -165,6 +165,109 @@ describe('with a ledger', () => {
   });
 });
 
+describe('backup', () => {
+  beforeEach(seed);
+
+  /** Drops a file into the import picker the way a user would. */
+  async function importFile(contents: string) {
+    const input = document.querySelector('input[type=file]') as HTMLInputElement;
+    const file = new File([contents], 'backup.gmc.json', { type: 'application/json' });
+    Object.defineProperty(input, 'files', { value: [file], configurable: true });
+    await act(async () => {
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  it('offers to export everything on the device', async () => {
+    await launch('/backup');
+    expect(await screen.findByRole('button', { name: /export 5 changes/i })).toBeDefined();
+  });
+
+  it('imports its own export and reports nothing new', async () => {
+    const { buildBackup, serialiseBackup } = await import('../lib/backup.js');
+    const text = serialiseBackup(
+      buildBackup(store.ledgerView().groupId as string, 'Lisbon weekend', store.allEnvelopes()),
+    );
+
+    await launch('/backup');
+    await importFile(text);
+
+    expect(await screen.findByRole('status')).toHaveProperty(
+      'textContent',
+      expect.stringMatching(/already had all of it/i),
+    );
+  });
+
+  it('takes in an expense the device has never seen', async () => {
+    const { buildBackup, serialiseBackup } = await import('../lib/backup.js');
+    const groupId = store.ledgerView().groupId as string;
+
+    const extra = {
+      id: 'ffff:0',
+      hlc: '001800000000001-0000-ffff',
+      groupId,
+      body: {
+        t: 'expense.create' as const,
+        expenseId: 'e2',
+        fields: {
+          description: 'Tram tickets',
+          totalCents: 900,
+          date: '2026-08-12',
+          payers: [{ memberId: 'm1', amountCents: 900 }],
+          split: { mode: 'equal' as const, among: ['m0', 'm1', 'm2'] },
+        },
+      },
+    };
+
+    await launch('/backup');
+    await importFile(
+      serialiseBackup(buildBackup(groupId, 'Lisbon weekend', [...store.allEnvelopes(), extra])),
+    );
+
+    expect(await screen.findByRole('status')).toHaveProperty(
+      'textContent',
+      expect.stringMatching(/added 1 expense/i),
+    );
+    expect(store.ledgerView().state.expenses).toHaveLength(2);
+  });
+
+  it('refuses a damaged file without importing any of it', async () => {
+    await launch('/backup');
+    await importFile('{"format":"gmc/1","events":[{"id":"bad"}]}');
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/damaged/i);
+    expect(store.ledgerView().state.expenses).toHaveLength(1);
+  });
+
+  it('refuses a backup belonging to a different group', async () => {
+    await launch('/backup');
+    await importFile(
+      JSON.stringify({
+        format: 'gmc/1',
+        groupId: 'somewhere-else',
+        groupName: 'Ski trip',
+        events: [
+          {
+            id: 'ffff:0',
+            hlc: '001800000000001-0000-ffff',
+            groupId: 'somewhere-else',
+            body: { t: 'group.init', name: 'Ski trip', currency: 'CHF' },
+          },
+        ],
+      }),
+    );
+
+    expect((await screen.findByRole('alert')).textContent).toMatch(/different group/i);
+    expect(store.ledgerView().state.group?.name).toBe('Lisbon weekend');
+  });
+
+  it('explains a format it cannot read', async () => {
+    await launch('/backup');
+    await importFile('{"format":"gmc/99","events":[]}');
+    expect((await screen.findByRole('alert')).textContent).toMatch(/update the app/i);
+  });
+});
+
 describe('an empty group', () => {
   beforeEach(async () => {
     await store.initLedger();
