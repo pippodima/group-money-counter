@@ -44,6 +44,7 @@ const TABS = [
   { route: '/', label: 'Expenses' },
   { route: '/balances', label: 'Balances' },
   { route: '/settle', label: 'Settle up' },
+  { route: '/sync', label: 'Sync' },
 ] as const;
 
 function TabBar({ active }: { active: string }) {

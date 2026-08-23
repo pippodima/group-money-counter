@@ -8,6 +8,7 @@ import { Expenses } from './screens/Expenses.js';
 import { Members } from './screens/Members.js';
 import { SettleUp } from './screens/SettleUp.js';
 import { Setup } from './screens/Setup.js';
+import { Sync } from './screens/Sync.js';
 import { StorageProbe } from './screens/StorageProbe.js';
 
 export function App() {
@@ -57,6 +58,7 @@ export function App() {
   if (route === '/settle') return <SettleUp />;
   if (route === '/members') return <Members />;
   if (route === '/backup') return <Backup />;
+  if (route === '/sync') return <Sync />;
 
   return <Expenses />;
 }

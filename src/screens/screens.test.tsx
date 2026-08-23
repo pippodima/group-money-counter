@@ -154,6 +154,19 @@ describe('with a ledger', () => {
     expect(screen.getByDisplayValue('Sara')).toBeDefined();
   });
 
+  it('offers to show or scan on the sync screen', async () => {
+    await launch('/sync');
+    expect(await screen.findByRole('button', { name: /show my ledger/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /scan theirs/i })).toBeDefined();
+    expect(screen.getByText(/5 changes to share/i)).toBeDefined();
+  });
+
+  it('puts sync in the tab bar, since it is the point of the app', async () => {
+    await launch('/');
+    const tabs = await screen.findByRole('navigation', { name: /sections/i });
+    expect(within(tabs).getByRole('button', { name: /^sync$/i })).toBeDefined();
+  });
+
   it('still exposes the storage probe', async () => {
     await launch('/probe');
     expect(await screen.findByText(/milestone 0/i)).toBeDefined();

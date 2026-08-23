@@ -6,8 +6,8 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 gate **passed** — iOS home-screen storage survived 8 days untouched. M1–M3
-complete, 169 tests passing. In progress: M4, QR sync.
+**Status:** M0 gate passed. M1–M3 complete; M4 built and deployed — 200 tests passing.
+Awaiting the real two-phone test before M4 closes.
 
 ---
 
@@ -141,13 +141,17 @@ Ships backup, and exercises the merge path on real data before QR exists.
 - [x] Measure real frame counts: 132 events → 5,616 bytes → **6 frames**. ~42 B/event
 - [x] `FrameCollector` — out-of-order frames, repeats, progress, version and group mismatch
 - [x] Round-trip property test through framing
-- [ ] QR rendering to canvas, target version 27 / ECC M
-- [ ] Animated frame loop at ~4 fps, cycling indefinitely
-- [ ] Camera capture via `getUserMedia`
-- [ ] Decode: `BarcodeDetector` where available, `zxing-wasm` fallback for Safari
-- [ ] Frame collection with `3 / 5` progress
-- [ ] Two-pass guided flow with the "now swap" prompt
-- [ ] Version mismatch and wrong-group handling
+- [x] Base45 payloads in QR alphanumeric mode — `BarcodeDetector` returns a *string*, so raw
+      byte-mode frames would not survive it. ~3% overhead against 33% for base64 (D44)
+- [x] QR rendering to canvas — 800-byte frames land at **version 23, 109×109** at ECC M
+- [x] Animated frame loop at ~4 fps, cycling indefinitely
+- [x] Camera capture via `getUserMedia`, decoding downscaled to 640px
+- [x] Decode: `BarcodeDetector` where available, ~~`zxing-wasm`~~ **jsQR** fallback — zxing
+      fetches its wasm from a CDN by default, which would falsify the privacy claim (D45)
+- [x] Frame collection with `3 / 8` progress
+- [x] Two-pass guided flow with the "now swap" prompt
+- [x] Version mismatch and wrong-group handling, both directions named
+- [x] Two-device convergence test through the real codec, minus the camera
 - [ ] **Real two-device test, airplane mode, both directions**
 - [ ] Test in bad light and at an awkward angle — tune density if it struggles
 

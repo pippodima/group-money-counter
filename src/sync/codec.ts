@@ -31,12 +31,25 @@ const MAX_FRAMES = 0xffff;
 /**
  * Payload bytes per frame.
  *
- * Sized for roughly QR version 27 at error-correction level M. Deliberately
- * not the ~2.9 KB a version-40 code could hold: dense codes scan badly across
- * two phone screens at arm's length, in a restaurant, at night. More frames
- * that scan first time beat fewer that do not (DESIGN.md §7).
+ * Measured, at error-correction level M, with base45 in alphanumeric mode:
+ *
+ *     bytes    QR version    grid
+ *       400        15         77 x 77
+ *       600        19         93 x 93
+ *       800        23        109 x 109
+ *      1100        28        129 x 129
+ *      1400        31        141 x 141
+ *
+ * 800 rather than the 1100 the design doc implied. A 132-event trip needs 8
+ * frames instead of 6 — at 4 fps that is 2 seconds a cycle against 1.5, which
+ * nobody will notice — and every module is 18% larger, which is the thing
+ * that actually decides whether a phone camera reads it across a table, at
+ * night, in a restaurant. DESIGN §7's own rule: more frames that scan on the
+ * first try beat fewer that do not.
+ *
+ * Worth revisiting once there is real two-device data.
  */
-export const FRAME_CAPACITY = 1100;
+export const FRAME_CAPACITY = 800;
 
 export type Decoded<T> = { ok: true; value: T } | { ok: false; problem: string };
 

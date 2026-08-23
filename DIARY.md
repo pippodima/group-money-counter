@@ -62,6 +62,9 @@ tried and abandoned, and what's still nagging.
 | D41 | JSON + deflate, not CBOR — reversing the spec | Measured on a realistic trip, CBOR was 1.9% smaller after deflate. Deflate already collapses the repeated keys CBOR exists to avoid | 7 |
 | D42 | Frames carry the total, and the sender loops forever | A scanner learns the count from whichever frame it catches first, and a missed frame simply comes round again — which removes all handshaking | 7 |
 | D43 | A changed frame total resets the collector instead of failing | The other phone adding an expense mid-scan is ordinary, not an error | 7 |
+| D44 | Base45 payloads in QR alphanumeric mode, not raw byte mode | `BarcodeDetector` hands back a string, which binary cannot survive. Base45's alphabet *is* QR's alphanumeric set: ~3% overhead against 33% for base64 | 8 |
+| D45 | jsQR, not zxing-wasm — reversing the roadmap | zxing-wasm fetches its `.wasm` from a CDN by default. "We remembered to configure it" is a weaker guarantee than "it cannot phone home", and 40 KB beats a megabyte | 8 |
+| D46 | 800-byte frames (QR v23), not 1100 (v28) | 8 frames instead of 6 costs half a second per cycle; 18% larger modules is what decides whether a camera reads it across a table | 8 |
 
 ---
 
@@ -548,5 +551,83 @@ which is why that validation went into core rather than into the backup module.
 
 Steps 3–5 of M4 need hardware: rendering the animated QR, camera capture, and the two-pass
 flow. A QR scanner cannot be verified in jsdom; the real test is two phones in airplane mode.
+
+Still open: Prettier and ESLint, and the Android storage comparison.
+
+---
+
+## Entry 8 — 2026-08-23 · M4: sync, built but not yet proven
+
+The QR flow is built and deployed. 200 tests. What remains is the part no test can do:
+two phones, a table, and a camera.
+
+### Base45, and why byte mode was wrong
+
+The design doc had frames going into QR *byte mode* as raw binary. That does not survive
+contact with `BarcodeDetector` — the fast native decoder on Android — which hands back a
+**string**, not bytes. Arbitrary binary interpreted as UTF-8 comes out mangled.
+
+Options were base64 at 33% overhead, or dropping BarcodeDetector entirely and always using a
+JS decoder.
+
+Base45 (RFC 9285) is the better answer (**D44**). Its alphabet is *exactly* QR's alphanumeric
+charset, which packs two characters into 11 bits. Three characters carry two bytes, so 16
+bits of payload cost 16.5 bits of QR — **about 3% overhead**. Same trick the EU Digital COVID
+Certificate used, for the same reason. Forty lines and a property test rather than a
+dependency, and the RFC ships test vectors to check against.
+
+Confirmed in the measurement: every frame encodes as `Alphanumeric`, not `Byte`.
+
+### jsQR over zxing-wasm
+
+The roadmap named `zxing-wasm`. Reversed it (**D45**) on the deciding fact that **zxing-wasm
+fetches its `.wasm` from a CDN by default**. It can be configured not to — but "we remembered
+to configure it correctly" is a much weaker guarantee than "it has no network code in it at
+all", and this app's entire claim rests on that distinction. It is also ~1 MB against jsQR's
+40 KB.
+
+Scanning conditions here are close to ideal anyway: a bright phone screen at arm's length,
+flat, high contrast, lit by its own backlight. If real hardware proves jsQR too fussy,
+zxing-wasm with a locally bundled binary is the upgrade path — but it should be taken
+knowingly, not by default.
+
+### Density: measured, then reduced
+
+Measured QR version against frame capacity, at ECC M:
+
+| bytes | version | grid |
+|---|---|---|
+| 400 | 15 | 77² |
+| 600 | 19 | 93² |
+| 800 | 23 | 109² |
+| 1100 | 28 | 129² |
+| 1400 | 31 | 141² |
+
+The doc aimed at ~1100 bytes / version 27. Went with **800** instead (**D46**). A 132-event
+trip needs 8 frames rather than 6 — at 4 fps that is 2 seconds a cycle against 1.5, which
+nobody will notice — and every module is 18% larger, which is the thing that actually decides
+whether a camera reads it across a table at night. DESIGN §7's own rule, applied to its own
+number.
+
+### What the tests cover, and what they cannot
+
+`sync.test.ts` runs two real stores through the entire path: encode, frame, base45, collect
+out of order and with repeats, decode, validate, merge, fold. It checks they converge, that
+balances agree to the cent, that edits and deletions survive a round trip, and that scanning
+the same phone twice is a no-op rather than a duplicate.
+
+What it cannot cover is optics — focus, glare, angle, screen brightness, camera latency.
+That is the whole remaining risk in M4, and it needs hardware.
+
+### Cost
+
+Bundle went from 198 KB to 405 KB raw, 63 KB to 136 KB gzipped. `qrcode` and `jsQR` account
+for it. Acceptable for a one-time install of a thing that then works forever offline, and
+`check-offline` confirms both are inlined with no `.wasm` and no CDN reference.
+
+### Next
+
+Two phones, airplane mode, both directions. Then M5's duplicate review, which only becomes
+meaningful once two devices are genuinely writing.
 
 Still open: Prettier and ESLint, and the Android storage comparison.

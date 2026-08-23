@@ -884,3 +884,36 @@ input[type='file'] {
   color: var(--ink-muted);
   margin: 0;
 }
+
+/* ------------------------------------------------------------------ sync */
+
+.qr-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--band);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 14px;
+  min-height: 260px;
+}
+
+/* White quiet zone always, in both themes: a QR code inverted on a dark
+   ground is unreadable to most scanners. */
+.qr {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  image-rendering: pixelated;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.viewfinder {
+  width: 100%;
+  max-width: 360px;
+  border-radius: 8px;
+  background: #000;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+}
