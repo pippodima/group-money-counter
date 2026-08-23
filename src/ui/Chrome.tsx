@@ -11,7 +11,7 @@ export function Screen({
   children,
   tabs,
 }: {
-  title: string;
+  title: ReactNode;
   subtitle?: string | undefined;
   onBack?: boolean | undefined;
   action?: ReactNode;
@@ -27,8 +27,8 @@ export function Screen({
           </button>
         )}
         <div className="titles">
-          <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
+          {typeof title === 'string' ? <h1>{title}</h1> : title}
+          {typeof title === 'string' && subtitle && <p>{subtitle}</p>}
         </div>
         {action}
       </header>

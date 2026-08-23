@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { hueFor } from './lib/palette.js';
 import { routeParam, useRoute } from './lib/router.js';
 import { initLedger, useLedger } from './store/ledger.js';
 import { Backup } from './screens/Backup.js';
@@ -20,6 +21,11 @@ export function App() {
   useEffect(() => {
     void initLedger();
   }, []);
+
+  // Every colour token derives from this, so one property re-tints the app.
+  useEffect(() => {
+    document.documentElement.style.setProperty('--hue', String(hueFor(groupId)));
+  }, [groupId]);
 
   if (!ready) {
     return (

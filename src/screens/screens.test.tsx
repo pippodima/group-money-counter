@@ -169,10 +169,72 @@ describe('with a ledger', () => {
     expect(screen.getByText(/sharing 5 changes from Lisbon weekend/i)).toBeDefined();
   });
 
+  it('switches group from the title bar when there is more than one', async () => {
+    await act(async () => {
+      await store.createGroup('Ski trip', 'CHF', ['Anna']);
+    });
+    await launch('/');
+
+    // Arrows and dots make the swipe discoverable rather than secret.
+    const next = await screen.findByRole('button', { name: /next group/i });
+    expect(screen.getByRole('button', { name: /previous group/i })).toBeDefined();
+
+    // findBy, not getBy: switching writes the choice to IndexedDB, so the
+    // re-render lands a tick later.
+    expect(await screen.findByRole('heading', { name: 'Ski trip' })).toBeDefined();
+    await act(async () => next.click());
+    expect(await screen.findByRole('heading', { name: 'Lisbon weekend' })).toBeDefined();
+  });
+
+  it('hides the group arrows when there is only one', async () => {
+    await launch('/');
+    expect(screen.queryByRole('button', { name: /next group/i })).toBeNull();
+  });
+
   it('puts sync in the tab bar, since it is the point of the app', async () => {
     await launch('/');
     const tabs = await screen.findByRole('navigation', { name: /sections/i });
     expect(within(tabs).getByRole('button', { name: /^sync$/i })).toBeDefined();
+  });
+
+  it('deletes an expense from the list, and can take it back', async () => {
+    await launch('/');
+    const before = store.allEnvelopes().length;
+
+    // The keyboard equivalent of the swipe.
+    const remove = await screen.findByRole('button', { name: /delete Pastéis de nata/i });
+    await act(async () => remove.click());
+
+    expect(screen.queryByText('Pastéis de nata')).toBeNull();
+    expect((await screen.findByRole('status')).textContent).toMatch(/deleted/i);
+
+    // Nothing is written during the undo window — deletion is absorbing, so
+    // an undo could not be reversed once the event existed.
+    expect(store.allEnvelopes()).toHaveLength(before);
+
+    await act(async () => screen.getByRole('button', { name: /undo/i }).click());
+
+    expect(await screen.findByText('Pastéis de nata')).toBeDefined();
+    expect(store.allEnvelopes()).toHaveLength(before);
+    expect(store.ledgerView().state.expenses[0]?.deleted).toBe(false);
+  });
+
+  it('commits the deletion when you leave the screen', async () => {
+    // Fake timers cannot be used to close the undo window here: IndexedDB's
+    // work needs real ones, and installing fakes stalls every later test.
+    // Leaving the screen is the same commit path, and is real behaviour.
+    await launch('/');
+    const remove = await screen.findByRole('button', { name: /delete Pastéis de nata/i });
+    await act(async () => remove.click());
+    expect(store.ledgerView().state.expenses[0]?.deleted).toBe(false);
+
+    await act(async () => {
+      cleanup();
+      // The commit is deliberately fire-and-forget on unmount, so give the
+      // write a tick to land before reading it back.
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(store.ledgerView().state.expenses[0]?.deleted).toBe(true);
   });
 
   it('still exposes the storage probe', async () => {

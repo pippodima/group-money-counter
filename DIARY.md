@@ -70,6 +70,10 @@ tried and abandoned, and what's still nagging.
 | D49 | A scan carrying an unknown group is an arrival, not an error | It is how a second trip gets onto a phone; refusing it was the bug, not the safeguard | 9 |
 | D50 | Groups are listed in creation order, not by id | `groupsIn` sorts by id for canonical determinism, but ids are random hex, so the visible list order was arbitrary | 9 |
 | D51 | Folded members, expenses and settlements come back in first-appearance order | Reverses D24. Replay is HLC-ordered, so insertion order is identical on every device — deterministic *and* meaningful, where random ids were only the former | 9 |
+| D52 | Every colour derives from one `--hue`, set from the group id | The hue is replicated for free, so both phones show the same colour for the same group — colour becomes a shared name for the trip, not a local preference | 10 |
+| D53 | Semantic colours do not follow the group hue | Money owed must stay red and money due green whatever the accent is; an accent that looks like a warning is worse than a dull one | 10 |
+| D54 | Undo is a delayed write, not a reversing event | Deletion is absorbing (D6) and must stay so, or deleted expenses reappear after a sync. Nothing is written until the window closes | 10 |
+| D55 | Gestures are never the only route | Swipe-to-delete and swipe-to-switch both have visible buttons behind them; a hidden gesture is undiscoverable and unusable with a keyboard | 10 |
 
 ---
 
@@ -719,5 +723,76 @@ very little about a bug whose trigger is randomness.
 
 The two-phone test is now genuinely runnable, which it was not before. Then M5's duplicate
 review.
+
+Still open: Prettier and ESLint, and the Android storage comparison.
+
+
+---
+
+## Entry 10 — 2026-08-24 · Colour, gestures, and an undo that cannot be an event
+
+Three requests from using it: quicker group switching, a colour per group, and swipe-to-delete
+with undo.
+
+### One hue, everything else derived
+
+Rather than a palette per group, every colour token now derives from a single `--hue`
+(**D52**):
+
+    --ground: hsl(var(--hue) 30% 98.5%);
+    --accent: hsl(var(--hue) 52% 29%);
+
+Switching group sets one custom property and the whole app re-tints, light and dark, with no
+second palette to maintain.
+
+The hue comes from hashing the group id, which has a property worth having: the id is
+replicated, so **both phones show the same colour for the same group**. Colour becomes a
+shared name for the trip rather than a local preference — and it costs nothing, because the
+id was already there.
+
+Two constraints on the palette. Semantic colours stay fixed (**D53**) — money owed is red and
+money due is green whatever the accent is. And hues below ~25° are excluded, because an
+accent that reads as a warning is worse than a dull one.
+
+### The undo could not be an event
+
+This one ran straight into **D6**: deletion is *absorbing*, so a tombstone can never be
+lifted. That rule is precisely what stops deleted expenses reappearing after a sync, and it is
+not negotiable.
+
+So undo is not a reversal — it is a **delayed write** (**D54**). Swiping hides the row and
+starts a six-second timer; only when that expires does `expense.delete` reach the log. Undo
+cancels the timer, and the log never learns anything happened. If the app is closed inside the
+window the deletion is lost rather than applied, which is the safe direction to fail.
+
+### The test found a real bug in it
+
+`flush` ran on unmount and read the outstanding deletion from inside a `setState` updater.
+React does not reliably invoke those on a component that is going away — so **navigating off
+the screen during the undo window silently did not delete**. The row vanished, the user moved
+on, and the expense came back.
+
+Fixed by mirroring the pending value in a ref, which unmount can read without touching React
+state. Worth noting the test that caught it was one I only wrote because fake timers had
+already forced me to test the commit a different way — closing the undo window with
+`vi.useFakeTimers()` stalled every subsequent test, since IndexedDB needs real ones. Testing
+"leaving the screen commits" instead turned out to test something far more interesting.
+
+### Gestures with visible handles
+
+Both new gestures have buttons behind them (**D55**). The group switcher has arrows and
+position dots and opens the full list on tap; swipe-to-delete has a visually-hidden delete
+button that appears on keyboard focus, and the expense editor keeps its own Delete.
+
+A swipe with no affordance is undiscoverable — the request here was for something *more*
+intuitive, and a secret gesture is the opposite. It also keeps both features usable without a
+touchscreen at all.
+
+Keeping the group name a real `<h1>` needed care: a `<button>` is phrasing content so it nests
+inside a heading legitimately, but the reverse is not true.
+
+### Next
+
+Still M5's duplicate review, and the two-phone hardware test.
 
 Still open: Prettier and ESLint, and the Android storage comparison.

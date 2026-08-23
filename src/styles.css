@@ -1,18 +1,28 @@
-/* Greenbar ledger paper: pale banded green, ink that leans green, one accent. */
+/* Ledger paper, tinted per group.
+ *
+ * Every neutral derives from a single --hue, set from the active group's id
+ * (see lib/palette.ts), so switching group re-tints the whole app without a
+ * second palette to maintain. Semantic colours — money owed, money due,
+ * warnings — deliberately do not follow it: an accent that looks like a
+ * warning is worse than a dull one.
+ */
 
 :root {
-  --ground: #fbfcf9;
-  --band: #eaf0e5;
-  --surface: #f3f7f0;
-  --raised: #ffffff;
-  --ink: #17201a;
-  --ink-mid: #3b4a3f;
-  --ink-muted: #5f6c62;
-  --rule: #ccd7c5;
-  --rule-soft: #dfe7da;
-  --accent: #256b47;
-  --accent-ink: #1b5335;
-  --accent-soft: #ddebe1;
+  --hue: 155;
+
+  --ground: hsl(var(--hue) 30% 98.5%);
+  --band: hsl(var(--hue) 24% 94%);
+  --surface: hsl(var(--hue) 26% 96.5%);
+  --raised: hsl(var(--hue) 40% 99.5%);
+  --ink: hsl(var(--hue) 22% 11%);
+  --ink-mid: hsl(var(--hue) 14% 26%);
+  --ink-muted: hsl(var(--hue) 10% 41%);
+  --rule: hsl(var(--hue) 18% 80%);
+  --rule-soft: hsl(var(--hue) 18% 88%);
+  --accent: hsl(var(--hue) 52% 29%);
+  --accent-ink: hsl(var(--hue) 58% 22%);
+  --accent-soft: hsl(var(--hue) 38% 90%);
+
   --danger: #9e3030;
   --danger-soft: #f6e4e1;
   --warn: #7e5310;
@@ -27,18 +37,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ground: #0e1310;
-    --band: #171e18;
-    --surface: #141b16;
-    --raised: #1a221b;
-    --ink: #e3eae1;
-    --ink-mid: #b7c3b8;
-    --ink-muted: #94a196;
-    --rule: #2b352c;
-    --rule-soft: #212a22;
-    --accent: #6fc291;
-    --accent-ink: #8ad3a8;
-    --accent-soft: #16261c;
+    --ground: hsl(var(--hue) 18% 5.5%);
+    --band: hsl(var(--hue) 16% 10%);
+    --surface: hsl(var(--hue) 16% 8.5%);
+    --raised: hsl(var(--hue) 15% 12%);
+    --ink: hsl(var(--hue) 15% 91%);
+    --ink-mid: hsl(var(--hue) 12% 74%);
+    --ink-muted: hsl(var(--hue) 10% 60%);
+    --rule: hsl(var(--hue) 14% 21%);
+    --rule-soft: hsl(var(--hue) 14% 15%);
+    --accent: hsl(var(--hue) 45% 62%);
+    --accent-ink: hsl(var(--hue) 52% 72%);
+    --accent-soft: hsl(var(--hue) 28% 13%);
+
     --danger: #e0837a;
     --danger-soft: #2a1a19;
     --warn: #d6a552;
@@ -959,4 +970,185 @@ input[type='file'] {
   font-weight: 750;
   letter-spacing: -0.02em;
   margin: 0;
+}
+
+/* ------------------------------------------------------- group switcher */
+
+.switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  touch-action: pan-y;
+}
+
+.switcher-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.switcher-arrow {
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 4px;
+  flex: none;
+}
+
+.switcher-name {
+  padding: 0 4px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.switcher-heading {
+  margin: 0;
+  min-width: 0;
+}
+
+.switcher-button {
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+.switcher-sub {
+  font-size: 13px;
+  color: var(--ink-muted);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-dots {
+  display: flex;
+  gap: 5px;
+  padding-left: 30px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--rule);
+}
+
+.dot.on {
+  background: var(--accent);
+}
+
+/* --------------------------------------------------------- swipe to delete */
+
+.swipe {
+  position: relative;
+  overflow: hidden;
+}
+
+.swipe-behind {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 18px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.swipe-behind.armed {
+  background: var(--danger);
+  color: #fff;
+}
+
+.swipe-front {
+  position: relative;
+  background: inherit;
+  touch-action: pan-y;
+}
+
+/* Keyboard and screen-reader equivalent of the swipe. */
+.swipe-delete {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: none;
+}
+
+.swipe-delete:focus-visible {
+  position: static;
+  width: auto;
+  height: auto;
+  clip-path: none;
+  padding: 6px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swipe-front {
+    transition: none !important;
+  }
+}
+
+/* ------------------------------------------------------------------ undo */
+
+.undobar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 66px);
+  width: min(32rem, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--ink);
+  color: var(--ground);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.28);
+  z-index: 9;
+}
+
+.undo-text {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.undobar button {
+  background: none;
+  border: none;
+  color: var(--accent-ink);
+  font-weight: 700;
+  padding: 4px 8px;
+  flex: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .undobar button {
+    color: var(--accent);
+  }
 }
