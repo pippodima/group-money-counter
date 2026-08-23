@@ -24,10 +24,25 @@ const HUES = [
 export function hueFor(groupId: string | undefined): number {
   if (!groupId) return HUES[0];
 
-  // FNV-ish: order matters, and neighbouring ids land far apart.
+  // FNV-1a, but with Math.imul. Plain `hash * 16777619` is float64
+  // multiplication: the product exceeds 2^53 and the low bits are quietly
+  // rounded away — which is precisely the range `% 8` then reads. The first
+  // attempt handed 44% of all groups the same colour because of it.
   let hash = 2166136261;
   for (let i = 0; i < groupId.length; i++) {
-    hash = ((hash ^ groupId.charCodeAt(i)) * 16777619) >>> 0;
+    hash = Math.imul(hash ^ groupId.charCodeAt(i), 16777619);
   }
-  return HUES[hash % HUES.length] as number;
+
+  // Avalanche (murmur3's fmix32). FNV alone leaves the low bits weakly mixed,
+  // and a power-of-two modulo depends on nothing else.
+  hash ^= hash >>> 16;
+  hash = Math.imul(hash, 0x7feb352d);
+  hash ^= hash >>> 15;
+  hash = Math.imul(hash, 0x846ca68b);
+  hash ^= hash >>> 16;
+
+  return HUES[(hash >>> 0) % HUES.length] as number;
 }
+
+/** The palette, for tests and for anywhere that needs to show all of them. */
+export const ALL_HUES: readonly number[] = HUES;

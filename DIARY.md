@@ -75,6 +75,7 @@ tried and abandoned, and what's still nagging.
 | D54 | Undo is a delayed write, not a reversing event | Deletion is absorbing (D6) and must stay so, or deleted expenses reappear after a sync. Nothing is written until the window closes | 10 |
 | D55 | Gestures are never the only route | Swipe-to-delete and swipe-to-switch both have visible buttons behind them; a hidden gesture is undiscoverable and unusable with a keyboard | 10 |
 | D56 | Deleting a group is a local purge, not an event | The log is append-only and there is no way to reach another device's copy. Anything else would be a lie about what deletion can do | 11 |
+| D57 | Hashes use `Math.imul` and a murmur3 finalizer | Plain `*` in JavaScript is float64: an FNV product exceeds 2^53 and the low bits round away — exactly the bits a power-of-two modulo reads | 12 |
 
 ---
 
@@ -844,6 +845,62 @@ a test asserting exactly that round trip — delete locally, sync with someone w
 it, watch it return — because the interface makes that promise out loud.
 
 Two-step, never one tap, and it reports how many expenses are about to go.
+
+### Next
+
+Still M5's duplicate review, and the two-phone hardware test.
+
+
+---
+
+## Entry 12 — 2026-08-24 · The colours were there, the hash was not
+
+Reported: groups still all look green. They did — 44% of them, anyway. The feature worked;
+the hash feeding it did not.
+
+Measured over 10,000 random group ids:
+
+| hue | before | after |
+|---|---|---|
+| green | **4384** | 1226 |
+| violet | **3108** | 1275 |
+| amber | 630 | 1303 |
+| blue | 600 | 1271 |
+| indigo | 384 | 1238 |
+| olive | 359 | 1270 |
+| teal | 272 | 1198 |
+| magenta | 263 | 1219 |
+
+Two colours took three quarters of everything between them. Ideal is 1250 each.
+
+### Two bugs, compounding
+
+**`hash * 16777619` is float64 multiplication.** JavaScript has no integer type, so the FNV
+product — up to about 7×10¹⁶ against `Number.MAX_SAFE_INTEGER` of 9×10¹⁵ — silently loses
+its **low** bits to rounding. `Math.imul` does the 32-bit multiply that FNV actually
+specifies.
+
+**`% 8` reads exactly the bits FNV mixes worst.** Even done correctly, FNV-1a's avalanche in
+the low bits is weak, and a power-of-two modulo depends on nothing else. Added murmur3's
+`fmix32` finalizer, which is what it exists for (**D57**).
+
+The two together were almost perfectly designed to fail: one destroyed the low bits, the
+other looked only at them.
+
+### Worth noticing about the failure mode
+
+Nothing threw. No test failed. The code was "working" — deterministic, stable, same colour
+for the same group on every device, every property I had thought to assert. It was just
+*wrong* in a way only visible in aggregate, and only to someone with several groups in front
+of them.
+
+The regression test now checks the distribution rather than any individual value: every
+colour used, none taking more than double its fair share. That is the only shape of test that
+would have caught this, and it did not occur to me to write it until the bug was in front of
+me either.
+
+A reminder that `>>> 0` after an arithmetic multiply looks like it makes something integer
+arithmetic and does not — it truncates a value whose precision has already gone.
 
 ### Next
 

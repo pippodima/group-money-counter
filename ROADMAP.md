@@ -6,7 +6,7 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 gate passed. M1–M4 built and deployed — 218 tests passing. Multiple groups,
+**Status:** M0 gate passed. M1–M4 built and deployed — 223 tests passing. Multiple groups,
 a join flow, per-group colour, swipe-to-delete and group deletion landed early out of M6.
 Next: the real two-phone test, then M5.
 
