@@ -42,7 +42,7 @@ tried and abandoned, and what's still nagging.
 | D21 | No CRDT library — plain HLC-ordered replay | Expenses are created by one person and edited by almost nobody; LWW falls out of ordered replay for free. Revisit only if real concurrent editing appears | 1 |
 | D22 | modulePreload polyfill off, Workbox runtime inlined | Both existed only to make `check-offline` pass with fewer exceptions; a bundle with zero `fetch(` is easier to keep honest than one with an allowlist | 2 |
 | D23 | Unsimplified mode settles **per expense**, not per member | Apportioning each debtor's share back across payers independently doesn't reconcile with what payers actually contributed; within one expense the nets provably sum to zero | 3 |
-| D24 | Folded state is sorted by id, not by date | Canonical order must use a replicated key so the determinism test is meaningful; display order is a view concern | 3 |
+| D24 | ~~Folded state is sorted by id~~ **reversed in entry 9** — ordered by first appearance | Insertion order after an HLC-sorted replay is equally deterministic and replicated, and sorting by random hex ids showed members in arbitrary order | 3, 9 |
 | D25 | Zero-weight members never receive a leftover cent | Someone explicitly assigned no share being handed a stray cent is a visible bug, not a rounding detail | 3 |
 | D26 | Sequence numbers are derived from the log, not stored | Removes a counter that could drift out of step with the events it describes | 3 |
 | D27 | Test fixtures live in `src/testing/`, outside core | The purity guard scans all of `src/core`, and the fixture generator exists to produce randomness | 3 |
@@ -69,6 +69,7 @@ tried and abandoned, and what's still nagging.
 | D48 | Export and sync send only the active group | Handing someone your ledger must not hand them every other trip on the phone | 9 |
 | D49 | A scan carrying an unknown group is an arrival, not an error | It is how a second trip gets onto a phone; refusing it was the bug, not the safeguard | 9 |
 | D50 | Groups are listed in creation order, not by id | `groupsIn` sorts by id for canonical determinism, but ids are random hex, so the visible list order was arbitrary | 9 |
+| D51 | Folded members, expenses and settlements come back in first-appearance order | Reverses D24. Replay is HLC-ordered, so insertion order is identical on every device — deterministic *and* meaningful, where random ids were only the former | 9 |
 
 ---
 
@@ -693,6 +694,26 @@ simply untrue.
 Core keeps sorting by id — that is canonical ordering and determinism depends on it — while
 the store now orders for display by each group's earliest event (**D50**). Deterministic, and
 actually oldest-first this time.
+
+### And a third, from the same root
+
+CI then failed on the member list coming back `['Sara', 'Anna']` instead of `['Anna',
+'Sara']` — passing locally, failing on the runner, purely on the luck of the random ids.
+
+Same cause as the group ordering, one level down. `fold` sorted members by id (**D24**), and
+ids are random hex — so the People list and every split editor were showing members in
+**arbitrary order**, not the order they were added. A real interface bug that had been
+sitting there since M1, invisible because two or three members shuffled is not obviously
+wrong to look at.
+
+D24's reasoning was that canonical order must use a replicated key. True, but insertion
+order *is* one: events are replayed in HLC order, which every device agrees on, so the order
+a Map receives them in is identical everywhere. Nothing positional or local about it.
+Reversed to first-appearance order (**D51**), and the shuffle-invariance property test still
+guards it — array comparison is order-sensitive, so it would catch any real regression.
+
+Ran the suite five times over to be sure the flakiness was gone, since one green run proves
+very little about a bug whose trigger is randomness.
 
 ### Next
 

@@ -41,8 +41,19 @@ function patched<T extends object>(base: T, patch: Partial<NoInfer<T>>): T {
   return next as T;
 }
 
-function byId<T extends { id: string }>(items: Iterable<T>): T[] {
-  return [...items].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+/**
+ * Canonical order: first appearance in the log.
+ *
+ * Originally this sorted by id, on the reasoning that canonical order must
+ * use a replicated key. Insertion order satisfies that just as well — events
+ * are replayed in HLC order, which every device agrees on, so the order a Map
+ * receives them in is identical everywhere. It is not positional or local.
+ *
+ * Sorting by id was also actively wrong for the interface: ids are random
+ * hex, so members came out shuffled rather than in the order they were added.
+ */
+function inOrder<T>(items: Iterable<T>): T[] {
+  return [...items];
 }
 
 /**
@@ -156,9 +167,9 @@ export function fold(envelopes: readonly Envelope[], groupId?: GroupId): LedgerS
 
   return {
     group,
-    members: byId(members.values()),
-    expenses: byId(expenses.values()),
-    settlements: byId(settlements.values()),
+    members: inOrder(members.values()),
+    expenses: inOrder(expenses.values()),
+    settlements: inOrder(settlements.values()),
   };
 }
 

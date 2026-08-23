@@ -8,6 +8,7 @@ front-loaded — M0 can invalidate the plan, so it goes first.
 
 **Status:** M0 gate passed. M1–M4 built and deployed — 207 tests passing. Multiple groups
 and a join flow landed early, out of M6, because sync was unusable without them.
+Next: the real two-phone test, then M5.
 
 ---
 
