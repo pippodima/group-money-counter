@@ -6,8 +6,8 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 deployed, its seven-day storage check still running. M1–M3 complete —
-169 tests passing. Next: M4, QR sync.
+**Status:** M0 gate **passed** — iOS home-screen storage survived 8 days untouched. M1–M3
+complete, 169 tests passing. In progress: M4, QR sync.
 
 ---
 
@@ -15,6 +15,8 @@ front-loaded — M0 can invalidate the plan, so it goes first.
 
 > **Done when:** a hello-world PWA is live on GitHub Pages, installed on a real iPhone home
 > screen, and IndexedDB data written to it has survived more than 7 days untouched.
+>
+> **Met on 2026-08-17 — 8 days, data intact.**
 
 This milestone exists to answer one question before any real work depends on the answer.
 
@@ -40,8 +42,8 @@ This milestone exists to answer one question before any real work depends on the
 
 ### The gate
 - [x] Debug screen writing a timestamp to IndexedDB and displaying how long ago it was written
-- [ ] Install to iPhone home screen, write data, leave untouched
-- [ ] **Check after 7+ days. Record the result in DIARY.md.**
+- [x] Install to iPhone home screen, write data, leave untouched
+- [x] **Checked 2026-08-17 after 8 days: data intact.** The home-screen exemption holds
 - [ ] Same check on Android for comparison
 
 ---
@@ -133,9 +135,12 @@ Ships backup, and exercises the merge path on real data before QR exists.
 > **Done when:** two physical phones converge to identical balances in under 30 seconds,
 > with airplane mode on.
 
-- [ ] CBOR + deflate encode/decode of the event array
-- [ ] Frame chunking, header, magic, version, 4-byte group prefix
-- [ ] Measure real frame counts against a realistic trip; tune chunk size
+- [x] ~~CBOR~~ **JSON** + deflate encode/decode of the event array — CBOR measured 1.9%
+      smaller after deflate, which does not pay for a dependency (D41)
+- [x] Frame chunking, 11-byte header: magic, version, 4-byte group prefix, index, total
+- [x] Measure real frame counts: 132 events → 5,616 bytes → **6 frames**. ~42 B/event
+- [x] `FrameCollector` — out-of-order frames, repeats, progress, version and group mismatch
+- [x] Round-trip property test through framing
 - [ ] QR rendering to canvas, target version 27 / ECC M
 - [ ] Animated frame loop at ~4 fps, cycling indefinitely
 - [ ] Camera capture via `getUserMedia`
@@ -143,7 +148,6 @@ Ships backup, and exercises the merge path on real data before QR exists.
 - [ ] Frame collection with `3 / 5` progress
 - [ ] Two-pass guided flow with the "now swap" prompt
 - [ ] Version mismatch and wrong-group handling
-- [ ] Round-trip property test through framing
 - [ ] **Real two-device test, airplane mode, both directions**
 - [ ] Test in bad light and at an awkward angle — tune density if it struggles
 

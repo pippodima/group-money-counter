@@ -58,6 +58,10 @@ tried and abandoned, and what's still nagging.
 | D37 | `merge()` reports what changed, not just how many events moved | "Added 6 expenses" is the sentence the user needs; M4's post-scan summary needs the same numbers | 6 |
 | D38 | Importing a backup from a different group is refused | Its events would be stored but invisible until multi-group lands, which reads as data loss | 6 |
 | D39 | `merge()` stays mechanical; whether a log *should* merge is the caller's call | An import and a QR scan need to ask the user different questions about the same situation | 6 |
+| D40 | iOS is a first-class target; no aggressive backup nagging needed | The home-screen storage exemption was verified on real hardware over 8 days, not assumed from documentation | 7 |
+| D41 | JSON + deflate, not CBOR — reversing the spec | Measured on a realistic trip, CBOR was 1.9% smaller after deflate. Deflate already collapses the repeated keys CBOR exists to avoid | 7 |
+| D42 | Frames carry the total, and the sender loops forever | A scanner learns the count from whichever frame it catches first, and a missed frame simply comes round again — which removes all handshaking | 7 |
+| D43 | A changed frame total resets the collector instead of failing | The other phone adding an expense mid-scan is ordinary, not an error | 7 |
 
 ---
 
@@ -476,3 +480,73 @@ events would be stored but invisible until multi-group lands, which reads as dat
 M4, QR sync. The largest milestone left, and the one the whole design exists to serve.
 
 Still open: Prettier and ESLint. The storage gate reads on 18 August — four days.
+
+---
+
+## Entry 7 — 2026-08-17 · The gate passed, and the spec was wrong about CBOR
+
+### M0's gate: passed
+
+Opened the installed app on the iPhone after **8 days untouched**. The data was still there,
+counting from the original write.
+
+So the iOS home-screen exemption from Safari's seven-day storage purge is real, on real
+hardware, not just in documentation. That was the assumption the entire project rested on,
+and it is the reason M0 was structured as a gate rather than as scaffolding.
+
+Consequences (**D40**): iOS stays a first-class target, and the app does not need to nag
+aggressively about backups. Export stays prominent — a deleted home-screen icon still takes
+the storage with it — but it can be a reasonable feature rather than a panic button.
+
+Worth being precise about what this proves: the *scheduled* purge does not apply. Deleting
+the icon, clearing website data, and storage pressure all still erase everything. The real
+durability story remains replication across the group, which is what M4 is for.
+
+### The spec was wrong about CBOR
+
+DESIGN §7 specified CBOR before deflate. Before taking the dependency I measured it on a
+realistic two-week trip — 5 people, 120 expenses, 132 events:
+
+| encoding | bytes | per event | frames |
+|---|---|---|---|
+| JSON | 45,917 | 348 B | 43 |
+| CBOR | 38,434 | 291 B | 36 |
+| JSON + deflate | 5,616 | 42.5 B | **6** |
+| CBOR + deflate | 5,507 | 41.7 B | **6** |
+
+**CBOR wins 1.9% after deflate**, and the same six frames. Deflate already collapses the
+repeated JSON keys that CBOR exists to avoid, so the two do the same job and only one of
+them is a dependency. Dropped it (**D41**).
+
+The rest of the sizing held up well: ~42 bytes per event against the doc's estimate of
+40–60, and six frames against "four or five".
+
+Reversing a spec decision on measurement is exactly what the diary is for. The estimate was
+reasonable; it was just made before there was anything to measure.
+
+### Framing
+
+11-byte header: magic `GM`, version, 4-byte group prefix, index, total. The group prefix
+catches two phones syncing different trips; the magic rejects a foreign QR code before
+anything else is parsed.
+
+Two choices worth recording:
+
+**Every frame carries the total** (**D42**), so a scanner learns how many to expect from
+whichever frame it happens to catch first. Combined with the sender looping indefinitely, a
+missed frame is not an error — it comes round again. That is what removes all handshaking,
+retry logic and protocol state from the design.
+
+**A changed total resets the collector** rather than failing (**D43**). The other phone
+adding an expense mid-scan is ordinary behaviour, not a fault.
+
+Frames are validated with the same `isEnvelope` written for M3. A scanned code and a
+hand-edited backup are the same problem — untrusted data heading for an append-only log —
+which is why that validation went into core rather than into the backup module.
+
+### Next
+
+Steps 3–5 of M4 need hardware: rendering the animated QR, camera capture, and the two-pass
+flow. A QR scanner cannot be verified in jsdom; the real test is two phones in airplane mode.
+
+Still open: Prettier and ESLint, and the Android storage comparison.
