@@ -917,3 +917,46 @@ input[type='file'] {
   aspect-ratio: 3 / 4;
   object-fit: cover;
 }
+
+/* ---------------------------------------------------------------- groups */
+
+.grouplist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.grouplist li + li {
+  border-top: 1px solid var(--rule-soft);
+}
+
+.grouplist li:nth-child(odd) {
+  background: var(--band);
+}
+
+.grouplist li.current {
+  background: var(--accent-soft);
+}
+
+.grouplist button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  border-radius: 0;
+  background: none;
+  padding: 14px;
+  text-align: left;
+}
+
+.setup-title {
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  margin: 0;
+}

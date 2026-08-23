@@ -1,13 +1,14 @@
 /** First run: name the group and list who is in it. */
 
 import { useState } from 'react';
-import { append, newId } from '../store/ledger.js';
-import type { Event } from '../core/events.js';
-import { Field, Problems } from '../ui/Chrome.js';
+import { createGroup, useLedger } from '../store/ledger.js';
+import { back, navigate } from '../lib/router.js';
+import { Field, Problems, Screen } from '../ui/Chrome.js';
 
 const CURRENCIES = ['EUR', 'GBP', 'USD', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'JPY'];
 
 export function Setup() {
+  const { groups } = useLedger();
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState('EUR');
   const [members, setMembers] = useState(['', '']);
@@ -33,23 +34,14 @@ export function Setup() {
     if (found.length > 0) return;
 
     setSaving(true);
-    const events: Event[] = [
-      { t: 'group.init', name: name.trim(), currency: currency.toUpperCase() },
-      ...named.map(
-        (memberName): Event => ({ t: 'member.add', memberId: newId(6), name: memberName }),
-      ),
-    ];
-    await append(...events);
+    await createGroup(name.trim(), currency.toUpperCase(), named);
+    navigate('/', true);
   }
 
   return (
-    <div className="screen">
-      <main className="body setup">
-        <p className="eyebrow">New group</p>
-        <h1>Who's splitting?</h1>
-        <p className="lede">
-          Everything stays on this device. No account, nothing uploaded.
-        </p>
+    <Screen title="New group" onBack={groups.length > 0}>
+      <h1 className="setup-title">Who's splitting?</h1>
+      <p className="lede">Everything stays on this device. No account, nothing uploaded.</p>
 
         <Field label="Group name">
           <input
@@ -100,10 +92,16 @@ export function Setup() {
 
         <Problems items={problems} />
 
+      <div className="actions">
         <button type="button" onClick={create} disabled={saving} className="primary">
           {saving ? 'Creating…' : 'Create group'}
         </button>
-      </main>
-    </div>
+        {groups.length > 0 && (
+          <button type="button" className="ghost" onClick={back}>
+            Cancel
+          </button>
+        )}
+      </div>
+    </Screen>
   );
 }

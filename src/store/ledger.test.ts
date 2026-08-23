@@ -166,11 +166,12 @@ describe('merging between devices', () => {
     await marco.append(dinner);
 
     // Reports what actually landed, not just how many events moved.
-    expect(await anna.merge(marco.allEnvelopes())).toEqual({
+    expect(await anna.merge(marco.allEnvelopes())).toMatchObject({
       events: 1,
       expenses: 1,
       settlements: 0,
       members: 0,
+      isNewGroup: false,
     });
     expect(await anna.merge(marco.allEnvelopes())).toMatchObject({ events: 0 });
     expect(anna.ledgerView().state.expenses).toHaveLength(1);
@@ -198,7 +199,7 @@ describe('merging between devices', () => {
       },
     );
 
-    expect(await anna.merge(marco.allEnvelopes())).toEqual({
+    expect(await anna.merge(marco.allEnvelopes())).toMatchObject({
       events: 3,
       expenses: 1,
       settlements: 1,
@@ -240,5 +241,105 @@ describe('merging between devices', () => {
     await marco.append({ t: 'group.init', name: 'Flat', currency: 'GBP' });
 
     expect(decodeHlc(lastHlc(anna)).node).not.toBe(decodeHlc(lastHlc(marco)).node);
+  });
+});
+
+describe('several groups on one device', () => {
+  let store: Store;
+
+  beforeEach(async () => {
+    store = await newDevice();
+    await store.createGroup('Lisbon', 'EUR', ['Anna', 'Marco']);
+  });
+
+  it('files a second group under its own id, not the first', async () => {
+    const first = store.ledgerView().groupId;
+    await store.createGroup('Ski trip', 'CHF', ['Anna', 'Sara']);
+    const second = store.ledgerView().groupId;
+
+    expect(second).not.toBe(first);
+    expect(store.ledgerView().groups.map((group) => group.name)).toEqual(['Lisbon', 'Ski trip']);
+
+    // The giveaway that group.init landed in the wrong place would be the
+    // new group inheriting the old one's members.
+    expect(store.ledgerView().state.members.map((member) => member.name)).toEqual([
+      'Anna',
+      'Sara',
+    ]);
+    expect(store.ledgerView().state.group?.currency).toBe('CHF');
+  });
+
+  it('keeps each group\'s expenses to itself', async () => {
+    await store.append({
+      t: 'expense.create',
+      expenseId: 'e1',
+      fields: {
+        description: 'Dinner',
+        totalCents: 3000,
+        date: '2026-08-24',
+        payers: [{ memberId: store.ledgerView().state.members[0]?.id as string, amountCents: 3000 }],
+        split: { mode: 'equal', among: [store.ledgerView().state.members[0]?.id as string] },
+      },
+    });
+
+    const lisbon = store.ledgerView().groupId as string;
+    await store.createGroup('Ski trip', 'CHF', ['Anna']);
+
+    expect(store.ledgerView().state.expenses).toHaveLength(0);
+    await store.setActiveGroup(lisbon);
+    expect(store.ledgerView().state.expenses).toHaveLength(1);
+  });
+
+  it('shares only the open group, never the others', async () => {
+    const lisbon = store.ledgerView().groupId;
+    await store.createGroup('Ski trip', 'CHF', ['Anna']);
+
+    // Handing someone your ledger must not hand them every other trip on the
+    // phone as well.
+    const shared = store.activeEnvelopes();
+    expect(shared.length).toBeGreaterThan(0);
+    expect(new Set(shared.map((envelope) => envelope.groupId))).toEqual(
+      new Set([store.ledgerView().groupId]),
+    );
+    expect(shared.some((envelope) => envelope.groupId === lisbon)).toBe(false);
+    expect(store.allEnvelopes().length).toBeGreaterThan(shared.length);
+  });
+
+  it('reopens the group you were last looking at', async () => {
+    const lisbon = store.ledgerView().groupId;
+    await store.createGroup('Ski trip', 'CHF', ['Anna']);
+    await store.setActiveGroup(lisbon as string);
+
+    const reopened = await relaunch();
+    expect(reopened.ledgerView().groupId).toBe(lisbon);
+    expect(reopened.ledgerView().state.group?.name).toBe('Lisbon');
+  });
+
+  it('lets a second phone join by scanning, which was impossible before', async () => {
+    const shared = store.activeEnvelopes();
+
+    // A fresh phone with nothing on it — previously its only option was to
+    // create its own group, after which syncing always failed.
+    const joiner = await newDevice();
+    const result = await joiner.merge(shared);
+
+    expect(result.isNewGroup).toBe(true);
+    expect(result.groupId).toBe(store.ledgerView().groupId);
+
+    await joiner.setActiveGroup(result.groupId as string);
+    expect(joiner.ledgerView().state.group?.name).toBe('Lisbon');
+    expect(joiner.ledgerView().state.members).toHaveLength(2);
+  });
+
+  it('adds a scanned group alongside, without moving you off the open one', async () => {
+    const other = await newDevice();
+    await other.createGroup('Ski trip', 'CHF', ['Sara']);
+
+    const staying = store.ledgerView().groupId;
+    const result = await store.merge(other.activeEnvelopes());
+
+    expect(result.isNewGroup).toBe(true);
+    expect(store.ledgerView().groupId).toBe(staying);
+    expect(store.ledgerView().groups).toHaveLength(2);
   });
 });

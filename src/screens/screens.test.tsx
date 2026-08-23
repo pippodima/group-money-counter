@@ -66,16 +66,24 @@ async function seed(): Promise<void> {
 }
 
 describe('first launch', () => {
-  it('asks you to create a group', async () => {
+  it('offers both ways in, not just creating', async () => {
+    // The bug this replaced: create was the only option, so a second phone
+    // always minted its own group and could never sync with the first.
     await launch();
-    expect(await screen.findByText(/who's splitting/i)).toBeDefined();
+    expect(await screen.findByRole('button', { name: /start a new group/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /join someone's group/i })).toBeDefined();
   });
 
   it('refuses an unnamed group and says why', async () => {
-    await launch();
+    await launch('/groups/new');
     const button = await screen.findByRole('button', { name: /create group/i });
     await act(async () => button.click());
     expect(screen.getByRole('alert').textContent).toMatch(/give the group a name/i);
+  });
+
+  it('sends anything needing a group to the landing screen', async () => {
+    await launch('/balances');
+    expect(await screen.findByRole('button', { name: /start a new group/i })).toBeDefined();
   });
 });
 
@@ -158,7 +166,7 @@ describe('with a ledger', () => {
     await launch('/sync');
     expect(await screen.findByRole('button', { name: /show my ledger/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /scan theirs/i })).toBeDefined();
-    expect(screen.getByText(/5 changes to share/i)).toBeDefined();
+    expect(screen.getByText(/sharing 5 changes from Lisbon weekend/i)).toBeDefined();
   });
 
   it('puts sync in the tab bar, since it is the point of the app', async () => {
@@ -252,26 +260,30 @@ describe('backup', () => {
     expect(store.ledgerView().state.expenses).toHaveLength(1);
   });
 
-  it('refuses a backup belonging to a different group', async () => {
+  it('takes in a backup from another group as a second group', async () => {
     await launch('/backup');
     await importFile(
       JSON.stringify({
         format: 'gmc/1',
-        groupId: 'somewhere-else',
+        groupId: 'somewhereelse00',
         groupName: 'Ski trip',
         events: [
           {
             id: 'ffff:0',
             hlc: '001800000000001-0000-ffff',
-            groupId: 'somewhere-else',
+            groupId: 'somewhereelse00',
             body: { t: 'group.init', name: 'Ski trip', currency: 'CHF' },
           },
         ],
       }),
     );
 
-    expect((await screen.findByRole('alert')).textContent).toMatch(/different group/i);
+    // Several groups can live side by side now, so this is an arrival rather
+    // than an error — but it must not silently move you off the open one.
+    expect((await screen.findByRole('status')).textContent).toMatch(/added/i);
     expect(store.ledgerView().state.group?.name).toBe('Lisbon weekend');
+    expect(store.ledgerView().groups.map((group) => group.name)).toContain('Ski trip');
+    expect(await screen.findByRole('button', { name: /open that group/i })).toBeDefined();
   });
 
   it('explains a format it cannot read', async () => {

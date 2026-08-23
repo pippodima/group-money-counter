@@ -65,6 +65,10 @@ tried and abandoned, and what's still nagging.
 | D44 | Base45 payloads in QR alphanumeric mode, not raw byte mode | `BarcodeDetector` hands back a string, which binary cannot survive. Base45's alphabet *is* QR's alphanumeric set: ~3% overhead against 33% for base64 | 8 |
 | D45 | jsQR, not zxing-wasm — reversing the roadmap | zxing-wasm fetches its `.wasm` from a CDN by default. "We remembered to configure it" is a weaker guarantee than "it cannot phone home", and 40 KB beats a megabyte | 8 |
 | D46 | 800-byte frames (QR v23), not 1100 (v28) | 8 frames instead of 6 costs half a second per cycle; 18% larger modules is what decides whether a camera reads it across a table | 8 |
+| D47 | Multiple groups pulled forward from M6 | Sync was unusable without it: a second phone could only ever create its own group, so every sync failed as "different group" | 9 |
+| D48 | Export and sync send only the active group | Handing someone your ledger must not hand them every other trip on the phone | 9 |
+| D49 | A scan carrying an unknown group is an arrival, not an error | It is how a second trip gets onto a phone; refusing it was the bug, not the safeguard | 9 |
+| D50 | Groups are listed in creation order, not by id | `groupsIn` sorts by id for canonical determinism, but ids are random hex, so the visible list order was arbitrary | 9 |
 
 ---
 
@@ -629,5 +633,70 @@ for it. Acceptable for a one-time install of a thing that then works forever off
 
 Two phones, airplane mode, both directions. Then M5's duplicate review, which only becomes
 meaningful once two devices are genuinely writing.
+
+Still open: Prettier and ESLint, and the Android storage comparison.
+
+---
+
+## Entry 9 — 2026-08-24 · The sync bug was a missing door
+
+Reported: syncing always failed with "wrong group". It was not a codec bug. It was a design
+error, and an obvious one in hindsight.
+
+`App.tsx` said:
+
+    if (!groupId) return <Setup />;
+
+and `Setup` could only *create* a group. So a second phone's only possible action was minting
+its own random group id — after which the guard comparing group prefixes was correct to
+refuse, every single time. **There was no way to join.** The safeguard worked; the app left
+no way to satisfy it.
+
+Worth recording plainly: the guard was not wrong, and no test would have caught this. Every
+test seeded both devices from the same log, because that is the only way the code allowed
+them to share a group. The tests faithfully reproduced a situation a user could never reach.
+
+### Multiple groups, pulled forward from M6
+
+The fix is the feature that was already scheduled (**D47**). Once several groups can live on
+one device, a scanned group that is not the open one stops being an error and becomes an
+arrival (**D49**) — which is exactly how a second trip gets onto a phone.
+
+- A landing screen offering *Start a new group* and *Join someone's group* with equal weight.
+- Joining is a scan. There is no invite link because there is no server to host one; the
+  first sync *is* the join.
+- A scan carrying an unknown group adds it and offers to switch, rather than silently moving
+  you off what you had open.
+- The active group is remembered, so a relaunch returns to it.
+
+`createGroup` mints the id *before* appending, because `append` files events under the
+current group — creating a second group through the old path would have filed its
+`group.init` under the first.
+
+### A leak found on the way
+
+`allEnvelopes()` returned the whole log across every group, and both export and sync used it.
+Sharing your ledger with one group would have handed them **every other group on the
+device** — including ones they have nothing to do with.
+
+Now `activeEnvelopes()` scopes both to the open group (**D48**). Squarely a privacy bug, in
+an app whose entire claim is privacy, and it existed only because there had never been a
+second group to reveal it.
+
+### A smaller one, caught by the suite disagreeing with itself
+
+The new multi-group test passed alone and failed in the full run. Not flakiness: `groupsIn`
+sorts by group id, ids are random hex, so the **visible group order was arbitrary** and
+happened to come out right in isolation. My own doc comment claimed "oldest first", which was
+simply untrue.
+
+Core keeps sorting by id — that is canonical ordering and determinism depends on it — while
+the store now orders for display by each group's earliest event (**D50**). Deterministic, and
+actually oldest-first this time.
+
+### Next
+
+The two-phone test is now genuinely runnable, which it was not before. Then M5's duplicate
+review.
 
 Still open: Prettier and ESLint, and the Android storage comparison.

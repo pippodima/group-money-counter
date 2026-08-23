@@ -14,7 +14,13 @@ import {
   parseBackup,
   serialiseBackup,
 } from '../lib/backup.js';
-import { allEnvelopes, type MergeResult, merge, useLedger } from '../store/ledger.js';
+import {
+  activeEnvelopes,
+  type MergeResult,
+  merge,
+  setActiveGroup,
+  useLedger,
+} from '../store/ledger.js';
 import { Problems, Screen } from '../ui/Chrome.js';
 
 type Outcome =
@@ -47,7 +53,7 @@ export function Backup() {
   function exportFile() {
     if (!groupId) return;
     const name = state.group?.name ?? 'Ledger';
-    const backup = buildBackup(groupId, name, allEnvelopes());
+    const backup = buildBackup(groupId, name, activeEnvelopes());
     const filename = backupFilename(name);
 
     const url = URL.createObjectURL(
@@ -75,16 +81,8 @@ export function Backup() {
         return;
       }
 
-      // One group per ledger for now. Merging a different one would store
-      // events that nothing can display, which looks like data loss.
-      if (groupId && parsed.backup.groupId !== groupId) {
-        setOutcome({
-          kind: 'refused',
-          problem: `That backup is for “${parsed.backup.groupName}”, which is a different group from this one. Holding several groups at once is not supported yet.`,
-        });
-        return;
-      }
-
+      // A backup from another group is welcome now that several can live
+      // side by side — it simply arrives as one more group on the device.
       setOutcome({ kind: 'merged', result: await merge(parsed.backup.events) });
     } catch (cause) {
       setOutcome({
@@ -131,9 +129,20 @@ export function Backup() {
       {outcome?.kind === 'refused' && <Problems items={[outcome.problem]} />}
 
       {outcome?.kind === 'merged' && (
-        <p className="notice" role="status">
-          {describe(outcome.result)}
-        </p>
+        <>
+          <p className="notice" role="status">
+            {describe(outcome.result)}
+          </p>
+          {outcome.result.groupId !== undefined && outcome.result.groupId !== groupId && (
+            <button
+              type="button"
+              className="primary"
+              onClick={() => void setActiveGroup(outcome.result.groupId as string)}
+            >
+              Open that group
+            </button>
+          )}
+        </>
       )}
 
       {outcome?.kind === 'exported' && (

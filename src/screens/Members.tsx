@@ -96,9 +96,14 @@ export function Members() {
         />
       </Field>
 
-      <button type="button" onClick={() => navigate('/backup')}>
-        Back up or restore
-      </button>
+      <div className="actions">
+        <button type="button" onClick={() => navigate('/groups')}>
+          Switch group
+        </button>
+        <button type="button" onClick={() => navigate('/backup')}>
+          Back up or restore
+        </button>
+      </div>
 
       <p className="footnote">
         {eventCount} event{eventCount === 1 ? '' : 's'} stored on this device · {currency}

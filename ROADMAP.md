@@ -6,8 +6,8 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 gate passed. M1–M3 complete; M4 built and deployed — 200 tests passing.
-Awaiting the real two-phone test before M4 closes.
+**Status:** M0 gate passed. M1–M4 built and deployed — 207 tests passing. Multiple groups
+and a join flow landed early, out of M6, because sync was unusable without them.
 
 ---
 
@@ -172,8 +172,10 @@ Ships backup, and exercises the merge path on real data before QR exists.
 
 > **Done when:** you'd hand it to a friend without explaining anything first.
 
-- [ ] Multiple groups and a group picker
-- [ ] Confirmation step when a scan would create a new group
+- [x] Multiple groups and a group picker — pulled forward from M6 (D47)
+- [x] Landing screen offering both "start a group" and "join one"
+- [x] Joining by scanning; the first sync *is* the join
+- [x] A scan carrying an unknown group adds it without moving you off the open one
 - [ ] Add-to-home-screen guidance, especially the iOS Share-sheet path
 - [ ] Backup nagging — prompt on a schedule, and after large changes
 - [ ] Empty states, error states, loading states
