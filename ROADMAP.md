@@ -6,8 +6,8 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 gate passed. M1–M4 built and deployed — 211 tests passing. Multiple groups,
-a join flow, per-group colour and swipe-to-delete landed early out of M6.
+**Status:** M0 gate passed. M1–M4 built and deployed — 218 tests passing. Multiple groups,
+a join flow, per-group colour, swipe-to-delete and group deletion landed early out of M6.
 Next: the real two-phone test, then M5.
 
 ---
@@ -182,6 +182,7 @@ Ships backup, and exercises the merge path on real data before QR exists.
 - [x] Per-group colour, derived from the group id so both phones agree (D52)
 - [x] Swipe to switch group, with arrows and dots so it is discoverable
 - [x] Swipe to delete an expense, with undo as a delayed write (D54)
+- [x] Delete a whole group — a local purge, since the log cannot reach other devices (D56)
 - [ ] Empty states, error states, loading states
 - [ ] Keyboard and screen-reader pass
 - [ ] README with screenshots and the privacy claim stated plainly

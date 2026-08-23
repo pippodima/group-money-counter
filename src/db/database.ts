@@ -102,6 +102,30 @@ export async function appendEvents(envelopes: readonly StoredEnvelope[]): Promis
   return added;
 }
 
+/**
+ * Permanently removes a group's events from this device.
+ *
+ * The only destructive operation in the app. It is deliberately *local*: the
+ * log is append-only and there is no way to reach anyone else's copy, so this
+ * frees the storage here and nothing more. Syncing afterwards with someone who
+ * still has the group brings it straight back.
+ */
+export async function deleteGroupEvents(groupId: string): Promise<number> {
+  const tx = (await db()).transaction('events', 'readwrite');
+  const index = tx.objectStore('events').index('by-group-hlc');
+
+  let removed = 0;
+  for await (const cursor of index.iterate(
+    IDBKeyRange.bound([groupId, ''], [groupId, '\uffff']),
+  )) {
+    await cursor.delete();
+    removed++;
+  }
+
+  await tx.done;
+  return removed;
+}
+
 export async function countEvents(): Promise<number> {
   return (await db()).count('events');
 }

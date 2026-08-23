@@ -12,7 +12,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import 'fake-indexeddb/auto';
 import { IDBFactory } from 'fake-indexeddb';
-import { act, cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 
 type Store = typeof import('../store/ledger.js');
 
@@ -154,6 +154,30 @@ describe('with a ledger', () => {
     expect(screen.getByDisplayValue('Pastéis de nata')).toBeDefined();
     expect(screen.getByDisplayValue('12.50')).toBeDefined();
     expect(screen.getByRole('button', { name: /delete/i })).toBeDefined();
+  });
+
+  it('asks before deleting a whole group, and says it can come back', async () => {
+    await launch('/members');
+    await act(async () => (await screen.findByRole('button', { name: /^delete this group$/i })).click());
+
+    // Destructive and irreversible locally, so it must not be one tap — and
+    // it must be honest that syncing can restore it.
+    const warning = screen.getByText(/cannot be undone here/i);
+    expect(warning.textContent).toMatch(/syncing|backup/i);
+
+    await act(async () => screen.getByRole('button', { name: /keep it/i }).click());
+    expect(screen.queryByText(/cannot be undone here/i)).toBeNull();
+    expect(store.ledgerView().groups).toHaveLength(1);
+  });
+
+  it('deletes the group once confirmed', async () => {
+    await launch('/members');
+    await act(async () => (await screen.findByRole('button', { name: /^delete this group$/i })).click());
+    await act(async () => screen.getByRole('button', { name: /delete .* permanently/i }).click());
+
+    // The purge is a transaction against IndexedDB, so it lands a tick later.
+    await waitFor(() => expect(store.ledgerView().groups).toEqual([]));
+    expect(store.allEnvelopes()).toEqual([]);
   });
 
   it('lists people and lets them be renamed', async () => {

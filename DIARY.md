@@ -74,6 +74,7 @@ tried and abandoned, and what's still nagging.
 | D53 | Semantic colours do not follow the group hue | Money owed must stay red and money due green whatever the accent is; an accent that looks like a warning is worse than a dull one | 10 |
 | D54 | Undo is a delayed write, not a reversing event | Deletion is absorbing (D6) and must stay so, or deleted expenses reappear after a sync. Nothing is written until the window closes | 10 |
 | D55 | Gestures are never the only route | Swipe-to-delete and swipe-to-switch both have visible buttons behind them; a hidden gesture is undiscoverable and unusable with a keyboard | 10 |
+| D56 | Deleting a group is a local purge, not an event | The log is append-only and there is no way to reach another device's copy. Anything else would be a lie about what deletion can do | 11 |
 
 ---
 
@@ -796,3 +797,54 @@ inside a heading legitimately, but the reverse is not true.
 Still M5's duplicate review, and the two-phone hardware test.
 
 Still open: Prettier and ESLint, and the Android storage comparison.
+
+
+---
+
+## Entry 11 — 2026-08-24 · A layering bug, and deleting a group
+
+### The delete background was always showing
+
+Reported: the delete button is visible all the time instead of only while swiping. The
+diagnosis was slightly different from the report — what showed was not the hidden button but
+the red *background layer* behind each row.
+
+`.swipe-front` had `background: inherit`, which looks right and is not. `inherit` resolves
+against the immediate parent, `.swipe`, which sets no background at all — so the front layer
+was transparent and the red delete layer beneath showed through permanently. The striping
+lives on the `<li>`, two levels up.
+
+Fixed by giving `.swipe-front` an explicit opaque background, matched to the row's parity so
+the greenbar banding survives:
+
+    .swipe-front { background: var(--ground); }
+    .ledger li:nth-child(odd) .swipe-front { background: var(--band); }
+
+A reminder that `inherit` on `background` is not "look like my surroundings" — it copies one
+specific parent's value, and transparent is a value.
+
+### Deleting a group is a purge, not an event
+
+Everything else in this app is an event. Group deletion cannot be (**D56**): the log is
+append-only, and there is no way to reach anyone else's copy of it. An event would only mark
+the group deleted *here* while still occupying storage, and would spread to other phones as
+though it were a shared decision — which it is not.
+
+So `deleteGroup` removes the rows from IndexedDB directly. It is the only destructive
+operation in the app, and the only place that touches the database outside the append path.
+
+That makes the honesty of the confirmation the whole design:
+
+> This cannot be undone here — though anyone else still in the group can give it back by
+> syncing, and a backup file will restore it.
+
+Both halves matter. It is genuinely irreversible on this device, and it is genuinely not
+irreversible in the group. A confirmation that claimed either alone would be wrong. There is
+a test asserting exactly that round trip — delete locally, sync with someone who still has
+it, watch it return — because the interface makes that promise out loud.
+
+Two-step, never one tap, and it reports how many expenses are about to go.
+
+### Next
+
+Still M5's duplicate review, and the two-phone hardware test.

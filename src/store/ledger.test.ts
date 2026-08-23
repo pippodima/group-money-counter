@@ -343,3 +343,81 @@ describe('several groups on one device', () => {
     expect(store.ledgerView().groups).toHaveLength(2);
   });
 });
+
+describe('deleting a group', () => {
+  let store: Store;
+
+  beforeEach(async () => {
+    store = await newDevice();
+    await store.createGroup('Lisbon', 'EUR', ['Anna', 'Marco']);
+    await store.append({
+      t: 'expense.create',
+      expenseId: 'e1',
+      fields: {
+        description: 'Dinner',
+        totalCents: 3000,
+        date: '2026-08-24',
+        payers: [{ memberId: 'm0', amountCents: 3000 }],
+        split: { mode: 'equal', among: ['m0'] },
+      },
+    });
+  });
+
+  it('removes it, and leaves other groups alone', async () => {
+    const lisbon = store.ledgerView().groupId as string;
+    await store.createGroup('Ski trip', 'CHF', ['Sara']);
+    const ski = store.ledgerView().groupId;
+
+    const removed = await store.deleteGroup(lisbon);
+
+    expect(removed).toBe(4);
+    expect(store.ledgerView().groups.map((group) => group.name)).toEqual(['Ski trip']);
+    expect(store.ledgerView().groupId).toBe(ski);
+    expect(store.allEnvelopes().some((envelope) => envelope.groupId === lisbon)).toBe(false);
+  });
+
+  it('moves off the deleted group when it was the one open', async () => {
+    await store.createGroup('Ski trip', 'CHF', ['Sara']);
+    const ski = store.ledgerView().groupId as string;
+
+    await store.deleteGroup(ski);
+
+    expect(store.ledgerView().groupId).not.toBe(ski);
+    expect(store.ledgerView().state.group?.name).toBe('Lisbon');
+  });
+
+  it('leaves the app with nothing when it was the only group', async () => {
+    await store.deleteGroup(store.ledgerView().groupId as string);
+
+    expect(store.ledgerView().groups).toEqual([]);
+    expect(store.ledgerView().groupId).toBeUndefined();
+    expect(store.allEnvelopes()).toEqual([]);
+  });
+
+  it('stays deleted across a relaunch', async () => {
+    const lisbon = store.ledgerView().groupId as string;
+    await store.createGroup('Ski trip', 'CHF', ['Sara']);
+    await store.deleteGroup(lisbon);
+
+    const reopened = await relaunch();
+    expect(reopened.ledgerView().groups.map((group) => group.name)).toEqual(['Ski trip']);
+    expect(reopened.ledgerView().groupId).toBe(reopened.ledgerView().groups[0]?.id);
+  });
+
+  it('comes back if someone else still has it', async () => {
+    // Deletion is local: the log is append-only and there is no way to reach
+    // another device's copy. Worth proving, since the UI promises exactly this.
+    const shared = store.activeEnvelopes();
+    const lisbon = store.ledgerView().groupId as string;
+
+    const friend = await newDevice();
+    await friend.merge(shared);
+
+    await store.deleteGroup(lisbon);
+    expect(store.ledgerView().groups).toEqual([]);
+
+    await store.merge(friend.activeEnvelopes());
+    expect(store.ledgerView().groups.map((group) => group.name)).toEqual(['Lisbon']);
+    expect(store.ledgerView().state.expenses).toHaveLength(1);
+  });
+});

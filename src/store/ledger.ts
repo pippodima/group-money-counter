@@ -14,7 +14,13 @@ import { type Envelope, type Event, envelopeId, nextSeq } from '../core/events.j
 import { fold, groupsIn } from '../core/fold.js';
 import { type Hlc, decodeHlc, encodeHlc, hlcReceive, hlcSend, initialHlc } from '../core/hlc.js';
 import { EMPTY_STATE, type GroupId, type LedgerState } from '../core/types.js';
-import { appendEvents, getMeta, readAllEvents, setMeta } from '../db/database.js';
+import {
+  appendEvents,
+  deleteGroupEvents,
+  getMeta,
+  readAllEvents,
+  setMeta,
+} from '../db/database.js';
 import { getDeviceId } from '../db/device.js';
 
 /** Enough of a group to list and pick it, without folding it twice. */
@@ -169,6 +175,31 @@ export async function createGroup(
     })),
   );
   return id;
+}
+
+/**
+ * Removes a group from this device, permanently.
+ *
+ * Local only, and irreversible here — but not globally: anyone else still
+ * holding the group can hand it back through a sync, and a backup file will
+ * restore it. Callers should say so before asking.
+ */
+export async function deleteGroup(id: GroupId): Promise<number> {
+  const removed = await deleteGroupEvents(id);
+  envelopes = envelopes.filter((envelope) => envelope.groupId !== id);
+
+  if (groupId === id) {
+    groupId = undefined;
+    await setMeta(ACTIVE_GROUP, undefined);
+  }
+
+  publish();
+
+  // publish() falls back to the oldest remaining group; remember that choice
+  // so a relaunch does not land somewhere else.
+  if (view.groupId !== undefined) await setMeta(ACTIVE_GROUP, view.groupId);
+
+  return removed;
 }
 
 /**

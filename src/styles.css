@@ -1081,8 +1081,15 @@ input[type='file'] {
 
 .swipe-front {
   position: relative;
-  background: inherit;
   touch-action: pan-y;
+  /* Must be opaque, and must match the row it covers. `inherit` looked right
+     but resolves against .swipe, which is transparent — so the red delete
+     layer behind showed through at rest instead of only while swiping. */
+  background: var(--ground);
+}
+
+.ledger li:nth-child(odd) .swipe-front {
+  background: var(--band);
 }
 
 /* Keyboard and screen-reader equivalent of the swipe. */
@@ -1151,4 +1158,34 @@ input[type='file'] {
   .undobar button {
     color: var(--accent);
   }
+}
+
+/* ----------------------------------------------------- destructive things */
+
+.danger-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--danger);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 6px;
+}
+
+.danger-zone .section-title {
+  color: var(--danger);
+}
+
+.danger-zone .actions {
+  width: 100%;
+}
+
+button.danger-solid {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  font-weight: 600;
+  padding: 14px;
 }
