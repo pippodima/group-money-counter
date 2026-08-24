@@ -76,6 +76,8 @@ tried and abandoned, and what's still nagging.
 | D55 | Gestures are never the only route | Swipe-to-delete and swipe-to-switch both have visible buttons behind them; a hidden gesture is undiscoverable and unusable with a keyboard | 10 |
 | D56 | Deleting a group is a local purge, not an event | The log is append-only and there is no way to reach another device's copy. Anything else would be a lie about what deletion can do | 11 |
 | D57 | Hashes use `Math.imul` and a murmur3 finalizer | Plain `*` in JavaScript is float64: an FNV product exceeds 2^53 and the low bits round away — exactly the bits a power-of-two modulo reads | 12 |
+| D58 | A remote invite is an ordinary backup file | Same format, same validation, same merge. A second "invite format" would be a second code path to keep honest for no gain | 13 |
+| D59 | `navigator.share` is allowed, and is not a network call | It opens the OS share sheet and transmits nothing by itself. The claim is that *this app* never sends anything on its own, not that data can never leave the phone | 13 |
 
 ---
 
@@ -901,6 +903,58 @@ me either.
 
 A reminder that `>>> 0` after an arithmetic multiply looks like it makes something integer
 arithmetic and does not — it truncates a value whose precision has already gone.
+
+### Next
+
+Still M5's duplicate review, and the two-phone hardware test.
+
+
+---
+
+## Entry 13 — 2026-08-24 · Inviting someone who isn't in the room
+
+QR sync assumes two phones on one table. It needed a way to invite someone who is not there,
+with the internet part handled by whatever app they already talk through.
+
+Most of it existed. Export produced exactly the right bytes; it was filed under "Backup",
+reachable only through People, and — the actual gap — **the Join screen only offered
+scanning**. A file could be sent but not received.
+
+### An invite is a backup file
+
+No new format (**D58**). Same JSON, same `isEnvelope` validation, same merge. A separate
+"invite format" would have meant a second parser and a second thing to keep honest, for a
+payload that is byte-for-byte what export already produced.
+
+It also means the invite carries the expenses, so the recipient arrives up to date rather
+than with an empty group needing a second sync. And re-opening an old invite is harmless —
+merge is a union, so it adds nothing twice.
+
+### The share sheet, and where the privacy line actually is
+
+`navigator.share` hands the file to the OS picker: WhatsApp, Signal, mail, AirDrop. On iOS
+Safari and Chrome for Android that is one tap; elsewhere it falls back to a download.
+
+Worth being exact, because it looks like a violation and is not (**D59**). The app makes no
+network call. It writes a file and asks the operating system to offer it onward. Nothing is
+transmitted unless the sender picks a destination, and what happens after that belongs to
+the app they picked.
+
+The claim was never "this data can never travel" — it is that **this app never sends it
+anywhere on its own**. A user deciding to WhatsApp their trip to a friend is the product
+working, not a leak. Added a note in `check-offline.mjs` saying why `navigator.share` is
+absent from the banned list, so nobody later reads it as an oversight.
+
+The line I would not cross is the app choosing a destination, or reaching one without being
+asked. Neither happens here.
+
+### Both routes converge
+
+Join now offers "They're here with you" (scan) and "They sent you an invite" (file), and both
+funnel into the same `accept()` — one merge, one validation, one summary. Sync gained the
+mirror: show a code, or send a file.
+
+Two situations, one code path underneath.
 
 ### Next
 

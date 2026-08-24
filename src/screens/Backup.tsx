@@ -7,13 +7,8 @@
  */
 
 import { useRef, useState } from 'react';
-import {
-  BACKUP_FORMAT,
-  backupFilename,
-  buildBackup,
-  parseBackup,
-  serialiseBackup,
-} from '../lib/backup.js';
+import { BACKUP_FORMAT, parseBackup } from '../lib/backup.js';
+import { buildInviteFile, downloadFile } from '../lib/invite.js';
 import {
   activeEnvelopes,
   type MergeResult,
@@ -52,22 +47,9 @@ export function Backup() {
 
   function exportFile() {
     if (!groupId) return;
-    const name = state.group?.name ?? 'Ledger';
-    const backup = buildBackup(groupId, name, activeEnvelopes());
-    const filename = backupFilename(name);
-
-    const url = URL.createObjectURL(
-      new Blob([serialiseBackup(backup)], { type: 'application/json' }),
-    );
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    // Released on the next tick; revoking immediately can cancel the download
-    // on some browsers before it has started reading the blob.
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
-
-    setOutcome({ kind: 'exported', filename });
+    const file = buildInviteFile(groupId, state.group?.name ?? 'Ledger', activeEnvelopes());
+    downloadFile(file);
+    setOutcome({ kind: 'exported', filename: file.name });
   }
 
   async function importFile(file: File) {

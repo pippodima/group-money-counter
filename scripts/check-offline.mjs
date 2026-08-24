@@ -27,7 +27,15 @@ const ALLOWED_HOSTS = new Set([
   'bit.ly', // Workbox console.warn text about unversioned precache URLs
 ]);
 
-/** APIs that reach the network. Workbox owns fetch inside the service worker. */
+/**
+ * APIs that reach the network. Workbox owns fetch inside the service worker.
+ *
+ * `navigator.share` is deliberately absent. It opens the operating system's
+ * share sheet and transmits nothing by itself — the person using the app
+ * chooses a destination, and whatever happens next belongs to the app they
+ * picked. The claim being defended here is that *this bundle* never sends
+ * anything on its own, not that data can never leave the phone by any route.
+ */
 const NETWORK_APIS = [
   [/\bnavigator\s*\.\s*sendBeacon\b/, 'navigator.sendBeacon'],
   [/\bnew\s+WebSocket\b/, 'WebSocket'],

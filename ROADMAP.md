@@ -6,7 +6,7 @@ record of decisions and dead ends lives in [DIARY.md](DIARY.md).
 Each milestone leaves the app in a working, shippable state. Risky unknowns are
 front-loaded — M0 can invalidate the plan, so it goes first.
 
-**Status:** M0 gate passed. M1–M4 built and deployed — 223 tests passing. Multiple groups,
+**Status:** M0 gate passed. M1–M4 built and deployed — 230 tests passing. Multiple groups,
 a join flow, per-group colour, swipe-to-delete and group deletion landed early out of M6.
 Next: the real two-phone test, then M5.
 
@@ -128,6 +128,7 @@ Ships backup, and exercises the merge path on real data before QR exists.
       hand-edited file cannot poison an append-only log. M4 reuses this for scanned frames
 - [x] All-or-nothing import: a damaged entry is named and nothing is stored
 - [x] Refuse a backup belonging to a different group, until multiple groups exist
+- [x] Remote invite: build a file and hand it to the OS share sheet; join by opening one (D58)
 
 ---
 

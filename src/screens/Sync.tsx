@@ -22,6 +22,7 @@ import {
   setActiveGroup,
   useLedger,
 } from '../store/ledger.js';
+import { buildInviteFile, sendInvite, type SendOutcome } from '../lib/invite.js';
 import { Problems, Screen } from '../ui/Chrome.js';
 import { Scanner } from '../ui/Scanner.js';
 
@@ -62,23 +63,29 @@ export function Sync() {
     <Screen title="Sync" subtitle={state.group?.name} onBack={stage.at === 'choose'} tabs="/sync">
       {stage.at === 'choose' && (
         <>
-          <p className="lede small">
-            Hold the two phones together. One shows, the other scans, then you swap. Nothing is
-            sent anywhere — the codes only travel between the screens.
-          </p>
-          <div className="actions">
-            <button
-              type="button"
-              className="primary"
-              onClick={() => setStage({ at: 'showing', swapped: false })}
-              disabled={!groupId}
-            >
-              Show my ledger
-            </button>
-            <button type="button" onClick={() => setStage({ at: 'scanning' })}>
-              Scan theirs
-            </button>
-          </div>
+          <section className="stack">
+            <h2 className="section-title">They're here with you</h2>
+            <p className="lede small">
+              One shows, the other scans, then you swap. Nothing is sent anywhere — the codes
+              only travel between the screens.
+            </p>
+            <div className="actions">
+              <button
+                type="button"
+                className="primary"
+                onClick={() => setStage({ at: 'showing', swapped: false })}
+                disabled={!groupId}
+              >
+                Show my ledger
+              </button>
+              <button type="button" onClick={() => setStage({ at: 'scanning' })}>
+                Scan theirs
+              </button>
+            </div>
+          </section>
+
+          {groupId && <InviteByFile groupId={groupId} name={state.group?.name ?? 'this group'} />}
+
           <p className="footnote">
             Sharing {eventCount} change{eventCount === 1 ? '' : 's'} from{' '}
             {state.group?.name ?? 'this group'}. Your other groups stay on this device.
@@ -153,6 +160,60 @@ export function Sync() {
         </>
       )}
     </Screen>
+  );
+}
+
+// ------------------------------------------------------------- invite by file
+
+/**
+ * For someone who is not in the room.
+ *
+ * The app builds a file and hands it to the OS share sheet; the sender picks
+ * WhatsApp, mail, AirDrop, whatever they already use. Nothing is transmitted
+ * by this app, and nothing at all until they choose a destination.
+ */
+function InviteByFile({ groupId, name }: { groupId: string; name: string }) {
+  const [outcome, setOutcome] = useState<SendOutcome | undefined>();
+  const [busy, setBusy] = useState(false);
+
+  async function send() {
+    setBusy(true);
+    setOutcome(undefined);
+    try {
+      const file = buildInviteFile(groupId, name, activeEnvelopes());
+      setOutcome(await sendInvite(file, name));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="stack">
+      <h2 className="section-title">They're somewhere else</h2>
+      <p className="lede small">
+        Send them an invite file however you normally talk — a message, mail, anything. They
+        open the app, choose <strong>Join</strong>, and pick the file.
+      </p>
+      <button type="button" onClick={send} disabled={busy}>
+        {busy ? 'Preparing…' : 'Send an invite'}
+      </button>
+
+      {outcome === 'downloaded' && (
+        <p className="notice" role="status">
+          Saved to your device. Attach it to a message to send it on.
+        </p>
+      )}
+      {outcome === 'shared' && (
+        <p className="notice" role="status">
+          Handed to the app you picked.
+        </p>
+      )}
+
+      <p className="field-hint">
+        The invite carries this group's expenses too, so they arrive up to date. Choosing where
+        to send it is yours — this app never sends anything on its own.
+      </p>
+    </section>
   );
 }
 
