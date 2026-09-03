@@ -4,6 +4,25 @@
   "version": "0.0.0",
   "type": "module",
   "description": "An offline-only shared expense ledger that syncs between devices by QR code.",
+  "license": "MIT",
+  "homepage": "https://pippodima.github.io/group-money-counter/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pippodima/group-money-counter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pippodima/group-money-counter/issues"
+  },
+  "keywords": [
+    "expense-splitting",
+    "offline-first",
+    "local-first",
+    "pwa",
+    "qr-code",
+    "event-sourcing",
+    "crdt",
+    "privacy"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "npm run typecheck && vite build && npm run check:offline",
