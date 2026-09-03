@@ -11,6 +11,21 @@ other by **showing QR codes across a table**.
 **[Try it →](https://pippodima.github.io/group-money-counter/)** · Add it to your home screen
 and it works offline forever.
 
+|  |  |  |  |
+|---|---|---|---|
+| ![The expense list](docs/screenshots/02-expenses.png) | ![Splitting by shares](docs/screenshots/03-split-by-shares.png) | ![Balances](docs/screenshots/04-balances.png) | ![Settling up](docs/screenshots/05-settle-up.png) |
+| Every expense, grouped by day | Four ways to split, with live amounts | Balances that always sum to zero | The shortest way to square up |
+
+<details>
+<summary>Starting a group, syncing, and dark mode</summary>
+
+|  |  |  |
+|---|---|---|
+| ![The first screen](docs/screenshots/00-start.png) | ![Syncing by QR code](docs/screenshots/06-sync-qr.png) | ![Dark mode](docs/screenshots/07-dark.png) |
+| No account to make | The ledger as QR frames | Dark, and a different group's colour |
+
+</details>
+
 ---
 
 ## Why
@@ -90,6 +105,11 @@ npm test           # 230 tests
 npm run build      # typecheck → build → offline check
 npm run preview    # serve the built app, with the service worker live
 ```
+
+The screenshots above are generated, not curated — `npm run screenshots` drives the real
+interface in Chromium and captures what comes out, so they cannot quietly drift from what
+the app actually does. It needs a `preview` server running, and `npx playwright install
+chromium` once.
 
 Note the `/group-money-counter/` path — it is the GitHub Pages base, and the bare root will
 404.

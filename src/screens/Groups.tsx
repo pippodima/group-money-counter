@@ -66,8 +66,9 @@ export function Groups() {
       </div>
 
       <p className="footnote">
-        Joining scans a QR code from a phone that already has the group. You need to be next
-        to each other — there is no link to send.
+        Join by scanning a QR code from a phone that already has the group, or by opening an
+        invite file someone sent you. There is no link, because there is no server to put one
+        on.
       </p>
     </Screen>
   );
